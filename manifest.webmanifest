@@ -1,0 +1,20 @@
+{
+  "name": "训练记录",
+  "short_name": "训练记录",
+  "description": "健身动作记录 · 组间歇倒计时 · 打卡日志",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

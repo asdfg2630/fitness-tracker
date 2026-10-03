@@ -653,7 +653,6 @@ function hz(ms){
 /** 全局：所有可点元素给一次轻震（安卓有效；iOS Safari 无此 API，静默跳过） */
 function bindGlobalHaptic(){
   document.addEventListener('pointerdown', function(e){
-    iosUnmuteAudio();   // 借首次手势把 iOS 静音档下的音频会话解开
     const t = e.target.closest && e.target.closest('button, .btn, .dot, .plist-item, .acc-head, .grip, .chip');
     if (t) hz(8);
   }, { passive: true });
@@ -735,38 +734,25 @@ function audioUnlock(){
       AC = new C();
     }
     if (AC.state === 'suspended') AC.resume();
+    usePlaybackSession();   // 顺手把音频会话切到「媒体播放」档，静音开关下才出得了声
     return AC.state === 'running';
   } catch(e){ return false; }
 }
 
-/* ---- iOS 静音档也想出声（尽力而为）----
-   iOS 的静音开关会掐掉 Web Audio，但 HTML5 <audio> 不受影响。
-   手法取自 feross/unmute-ios-audio：在首次用户手势里同时
-   ① 播一个循环的静音 <audio> ② 启动一个静音 Web Audio 源；
-   两者都成功会把音频会话提到「playback」档，之后 Web Audio 也能穿过静音开关。
-   ⚠️ 本机没有 iOS，无法自测 —— 以你手机上实测为准；不生效也不影响原本的响铃。 */
-let iosAudioDone = false, iosAudioEl = null;
-function iosUnmuteAudio(){
-  if (iosAudioDone) return;
-  const C = window.webkitAudioContext;
-  if (!(navigator.maxTouchPoints > 0 && C != null)){ iosAudioDone = true; return; }   // 只在 iOS 上折腾
-  iosAudioDone = true;
+/* ---- 让响铃穿过 iPhone 的静音开关 ----
+   用 Safari 16.4+ 的 Audio Session API：把本页的音频会话切成「媒体播放」档，
+   iOS 就按音乐播放器的待遇对待它 —— 静音开关不管。
+   ⚠️ 代价：页面一出声，iOS 可能把你正在放的音乐暂停，所以放完就切回 auto。
+   ⚠️ Chrome/Firefox 没有这个 API，本机也无法自测 iOS 效果 —— 只做能力检测后尽力设置。 */
+function usePlaybackSession(){
   try {
-    const el = document.createElement('audio');
-    el.setAttribute('x-webkit-airplay', 'deny');   // 别占 iOS 控制中心的媒体卡片
-    el.preload = 'auto';
-    el.loop = true;
-    el.src = 'data:audio/wav;base64,UklGRisAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQcAAACAgICAgICAAAA=';
-    el.load();
-    const p = el.play();
-    if (p && p.then) p.then(function(){ iosAudioEl = el; }, function(){ try { el.pause(); } catch(e){} });
-    if (audioUnlock()){
-      const src = AC.createBufferSource();
-      src.buffer = AC.createBuffer(1, 1, 22050);
-      src.connect(AC.destination);
-      src.start();
-    }
-  } catch(e){}
+    if (!navigator.audioSession) return false;
+    navigator.audioSession.type = 'playback';
+    return navigator.audioSession.type === 'playback';
+  } catch(e){ return false; }
+}
+function releaseAudioSession(){
+  try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch(e){}
 }
 
 /** 用极轻的静音循环占住音频会话，降低后台被挂起的概率 */
@@ -1194,6 +1180,7 @@ function finishTimer(){
     renderTimer();
     $('tState').textContent = '已复位 · ' + fmtSec(t.orig);
     holdAudio(false);            // 等两轮铃声播完再放开音频会话
+    releaseAudioSession();       // 音频会话还回 auto，别一直占着「媒体播放」档
   }, 2600);
 }
 

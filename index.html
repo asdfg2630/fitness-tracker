@@ -16,9 +16,9 @@
   --header-h:54px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
 body{
-  margin:0;background:var(--bg);color:var(--text);
+  margin:0;background:var(--bg);color:var(--text);touch-action:manipulation;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
   font-size:15px;line-height:1.5;letter-spacing:.01em;
   padding-bottom:calc(40px + env(safe-area-inset-bottom));
@@ -673,6 +673,7 @@ let DB = null;
 let ui = {
   sel: null, month: null, selDay: null,
   editMode: false, openAcc: {},
+  day: null,                  // 当前认定的「今天」，隔夜唤醒时用来判断要不要重挑部位
   titleForm: 'popover',       // 定版＝标题下方浮层（v4-形态对比图里的第 4 种）。其余 4 种的 CSS 先留着，改这里即可切
   timer: { orig: 120, left: 120, running: false, endAt: 0, tick: 0 }
 };
@@ -1712,14 +1713,23 @@ function boot(){
   // 而第二次以后形态类已就位，才是设计的浮层动画 —— 用户看到的「前后不一致」就是这个。
   $('drawer').className = 'drawer mode-' + (ui.titleForm || 'drawer');
   initSelection();
+  ui.day = today();            // 记住当前是哪一天，用来发现「隔夜没重载」
   bindHome();
   bindSettings();
   bindGlobalHaptic();
   renderHome();
   window.addEventListener('beforeunload', saveNow);
   document.addEventListener('visibilitychange', function(){
-    if (document.hidden) saveNow();
-    else if (ui.timer.running) tickOnce();   // 回到前台立刻校准
+    if (document.hidden){ saveNow(); return; }
+    // 隔夜回来（PWA 从后台唤醒、页面根本没重新加载）必须重挑部位并重画，
+    // 否则会停着昨天的大项和昨天的完成键 —— 用户以为「没自动跳到下一个」多半是这个
+    if (ui.day !== today()){
+      ui.day = today();
+      initSelection();
+      renderHome();
+      return;
+    }
+    if (ui.timer.running) tickOnce();   // 回到前台立刻校准
   });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

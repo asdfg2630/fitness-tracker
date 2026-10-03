@@ -523,6 +523,20 @@ body.theme-frost .cycle-row{margin-top:2px}
         <input class="txt" id="newDur" inputmode="numeric" placeholder="秒数，例如 90" maxlength="4">
         <button class="btn sm blue" id="btnAddDur">添加档位</button>
       </div>
+      <div class="row-inline" style="justify-content:space-between;border-top:1px solid var(--line)">
+        <div style="flex:1;min-width:130px">
+          <div style="font-size:15px">响铃自检</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px" id="ringHint">点一下立刻响一次，不用等倒计时</div>
+        </div>
+        <button class="btn sm ghost" id="btnTestRing">试响一次</button>
+      </div>
+      <div class="row-inline" style="justify-content:space-between;border-top:1px solid var(--line)">
+        <div style="flex:1;min-width:130px">
+          <div style="font-size:15px">用 iPhone 计时器</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px" id="scHint">网页做不到静音档响铃；系统计时器可以。先在「快捷指令」里建一个叫「组间歇」的</div>
+        </div>
+        <button class="btn sm ghost" id="btnShortcut">调系统计时器</button>
+      </div>
     </div>
 
     <div class="section-title">通用</div>
@@ -728,31 +742,20 @@ function saveNow(){
 let AC = null, holdSrc = null, wakeLock = null;
 function audioUnlock(){
   try {
+    if (AC && AC.state === 'closed') AC = null;   // 关掉的上下文救不回来，只能重建
     if (!AC){
       const C = window.AudioContext || window.webkitAudioContext;
       if (!C) return false;
       AC = new C();
     }
-    if (AC.state === 'suspended') AC.resume();
-    usePlaybackSession();   // 顺手把音频会话切到「媒体播放」档，静音开关下才出得了声
-    return AC.state === 'running';
+    // ⚠️ iOS 上 AudioContext 不止会 'suspended'，还可能停在 'interrupted'
+    //（来电、切音频会话、折腾静音开关都会）。只处理 'suspended' 会让它一辈子起不来，
+    // 表现就是「本来能响，反复试几次之后彻底不响了」。所以只要不是 running 就 resume。
+    if (AC.state !== 'running') AC.resume();
+    // 这里也不能拿 state 当返回值：resume 是异步的，刚调完还是非 running，
+    // 会把调用方（scheduleBeep）误判成「没解锁」而直接放弃。
+    return true;
   } catch(e){ return false; }
-}
-
-/* ---- 让响铃穿过 iPhone 的静音开关 ----
-   用 Safari 16.4+ 的 Audio Session API：把本页的音频会话切成「媒体播放」档，
-   iOS 就按音乐播放器的待遇对待它 —— 静音开关不管。
-   ⚠️ 代价：页面一出声，iOS 可能把你正在放的音乐暂停，所以放完就切回 auto。
-   ⚠️ Chrome/Firefox 没有这个 API，本机也无法自测 iOS 效果 —— 只做能力检测后尽力设置。 */
-function usePlaybackSession(){
-  try {
-    if (!navigator.audioSession) return false;
-    navigator.audioSession.type = 'playback';
-    return navigator.audioSession.type === 'playback';
-  } catch(e){ return false; }
-}
-function releaseAudioSession(){
-  try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch(e){}
 }
 
 /** 用极轻的静音循环占住音频会话，降低后台被挂起的概率 */
@@ -776,6 +779,12 @@ function holdAudio(on_){
   } catch(e){}
 }
 /** 把响铃提前排进音频线程：即使 JS 被后台节流，声音也会准时响 */
+/** 调起 iPhone「快捷指令 → 开始计时」的地址（唯一能穿过静音开关的路）。
+    单独抽成函数是为了能被测试直接断言，不用真的跳转。 */
+function shortcutUrl(sec){
+  return 'shortcuts://run-shortcut?name=' + encodeURIComponent('组间歇') +
+         '&input=text&text=' + Math.round(sec);
+}
 function scheduleBeep(endAt){
   if (!AC || AC.state !== 'running') return false;
   try {
@@ -1141,7 +1150,8 @@ function startTimer(){
   t.running = true;
   holdAudio(true);
   const scheduled = scheduleBeep(t.endAt);   // 提前排进音频线程
-  if (!scheduled) { /* 音频没解锁，靠下面 setTimeout 兜底 */ }
+  t.beepOk = !!scheduled;                    // 记下来：到点要是没排上，现场再补一发
+  if (!scheduled) { /* 音频没解锁，交给 finishTimer 兜底 */ }
   acquireWakeLock();
   stopTimerTicking();
   t.tick = setInterval(tickOnce, 250);       // setInterval：后台也能跑（rAF 会被冻结）
@@ -1169,6 +1179,12 @@ function finishTimer(){
   d.classList.add('done');
   $('tState').textContent = '时间到！';
   renderTimer();                 // 按钮从「暂停」回到「开始」（原来漏了这句，会一直卡在暂停）
+  // 启动时没排上（例如 iOS 把音频上下文打断了）→ 到点这一瞬间再补一次，
+  // 否则会出现「倒计时正常走完、就是不响」这种最难查的情况
+  if (!t.beepOk){
+    audioUnlock();
+    t.beepOk = scheduleBeep(Date.now() + 30);
+  }
   vibratePattern();
   fireNotify();
   // 若音频线程那条已排出，这里不重复响；只有没排上时才补一次
@@ -1180,7 +1196,6 @@ function finishTimer(){
     renderTimer();
     $('tState').textContent = '已复位 · ' + fmtSec(t.orig);
     holdAudio(false);            // 等两轮铃声播完再放开音频会话
-    releaseAudioSession();       // 音频会话还回 auto，别一直占着「媒体播放」档
   }, 2600);
 }
 
@@ -1452,6 +1467,24 @@ function bindSettings(){
     toast('已添加档位 ' + fmtSec(v));
   });
   on('newDur', 'keydown', function(e){ if (e.key === 'Enter') $('btnAddDur').click(); });
+
+  /* 响铃自检：5 秒就能试出来；失败时把音频状态显示出来，便于远程排查 */
+  on('btnTestRing', 'click', function(){
+    audioUnlock();
+    const ok = scheduleBeep(Date.now() + 40);
+    const st = AC ? AC.state : '无上下文';
+    $('ringHint').textContent = '音频状态 ' + st + ' · ' + (ok ? '已排入响铃，听一下' : '没排上（浏览器拦了）');
+    hz(15);
+  });
+
+  /* 调起 iPhone 的「快捷指令 → 开始计时」，交给系统计时器 —— 这是唯一能穿过静音开关的路 */
+  on('btnShortcut', 'click', function(){
+    const sec = Math.round(ui.timer.orig);
+    hz(12);
+    $('scHint').textContent = '正在调起「组间歇」快捷指令（' + fmtSec(sec) + '）…';
+    try { location.href = shortcutUrl(sec); }
+    catch(e){ $('scHint').textContent = '调不起快捷指令：' + ((e && e.message) || '未知错误'); }
+  });
 
   /* 调时长：设置页是唯一入口（计时卡片上只剩开始 / 重置） */
   const setDur = function(sec){

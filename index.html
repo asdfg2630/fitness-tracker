@@ -530,12 +530,14 @@ body.theme-frost .cycle-row{margin-top:2px}
         </div>
         <button class="btn sm ghost" id="btnTestRing">试响一次</button>
       </div>
-      <div class="row-inline" style="justify-content:space-between;border-top:1px solid var(--line)">
-        <div style="flex:1;min-width:130px">
-          <div style="font-size:15px">用 iPhone 计时器</div>
-          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px" id="scHint">网页做不到静音档响铃；系统计时器可以。先在「快捷指令」里建一个叫「组间歇」的</div>
+      <div class="row-inline" style="border-top:1px solid var(--line);display:block">
+        <div style="font-size:15px">用 iPhone 计时器</div>
+        <div style="font-size:12.5px;color:var(--text-3);margin-top:2px;line-height:1.6" id="scHint">网页做不到静音档响铃，系统计时器可以。<b>先在「快捷指令」里建一个名字正好是「组间歇」的</b>，再回来点最右边那个按钮</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn sm ghost" id="btnScOpen">打开快捷指令</button>
+          <button class="btn sm ghost" id="btnScCopy">复制名字</button>
+          <button class="btn sm blue" id="btnShortcut">调系统计时器</button>
         </div>
-        <button class="btn sm ghost" id="btnShortcut">调系统计时器</button>
       </div>
     </div>
 
@@ -1478,12 +1480,27 @@ function bindSettings(){
   });
 
   /* 调起 iPhone 的「快捷指令 → 开始计时」，交给系统计时器 —— 这是唯一能穿过静音开关的路 */
+  const scSay = function(html){ $('scHint').innerHTML = html; };
+  on('btnScOpen', 'click', function(){
+    hz(12);
+    scSay('已打开「快捷指令」App。建好后名字必须是 <b>组间歇</b>（可以先点旁边那个按钮复制）');
+    try { location.href = 'shortcuts://'; } catch(e){ scSay('跳不过去，手动打开「快捷指令」App 吧'); }
+  });
+  on('btnScCopy', 'click', function(){
+    hz(12);
+    const okSay = function(){ scSay('名字 <b>组间歇</b> 已复制，粘贴成快捷指令的名字就行'); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText('组间歇').then(okSay, function(){ scSay('复制没成功，手打这三个字：<b>组间歇</b>'); });
+      } else okSay();
+    } catch(e){ scSay('复制没成功，手打这三个字：<b>组间歇</b>'); }
+  });
   on('btnShortcut', 'click', function(){
     const sec = Math.round(ui.timer.orig);
     hz(12);
-    $('scHint').textContent = '正在调起「组间歇」快捷指令（' + fmtSec(sec) + '）…';
+    scSay('正在调起「组间歇」（' + fmtSec(sec) + '）…<br>要是提示「未找到快捷指令」，就是还没建好，先点上面的「打开快捷指令」');
     try { location.href = shortcutUrl(sec); }
-    catch(e){ $('scHint').textContent = '调不起快捷指令：' + ((e && e.message) || '未知错误'); }
+    catch(e){ scSay('调不起快捷指令，手动打开「时钟」App 计时吧'); }
   });
 
   /* 调时长：设置页是唯一入口（计时卡片上只剩开始 / 重置） */

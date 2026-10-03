@@ -532,7 +532,7 @@ body.theme-frost .cycle-row{margin-top:2px}
       </div>
       <div class="row-inline" style="border-top:1px solid var(--line);display:block">
         <div style="font-size:15px">用 iPhone 计时器</div>
-        <div style="font-size:12.5px;color:var(--text-3);margin-top:2px;line-height:1.6" id="scHint">手机装兜里、或戴着耳机放音乐时，<b>网页提醒不到你</b>（iOS 会把后台网页挂起）。系统计时器可以。<br><b>先在「快捷指令」里建一个名字正好是「组间歇」的</b>，再点最右边那个按钮。</div>
+        <div style="font-size:12.5px;color:var(--text-3);margin-top:2px;line-height:1.6" id="scHint">手机装兜里、或戴着耳机放音乐时，<b>网页提醒不到你</b>（iOS 会把后台网页挂起）。系统计时器可以。<br>点首页那个「开始」就会自动调起 <b>组间歇计时</b>（时长在快捷指令里自己定）。</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
           <button class="btn sm ghost" id="btnScOpen">打开快捷指令</button>
           <button class="btn sm ghost" id="btnScCopy">复制名字</button>
@@ -690,7 +690,7 @@ let ui = {
   editMode: false, openAcc: {},
   day: null,                  // 当前认定的「今天」，隔夜唤醒时用来判断要不要重挑部位
   titleForm: 'popover',       // 定版＝标题下方浮层（v4-形态对比图里的第 4 种）。其余 4 种的 CSS 先留着，改这里即可切
-  timer: { orig: 120, left: 120, running: false, endAt: 0, tick: 0 }
+  timer: { orig: 120, left: 120, running: false, endAt: 0, tick: 0, silent: false, beepOk: true, fromFull: true }
 };
 
 function blankData(){
@@ -781,11 +781,18 @@ function holdAudio(on_){
   } catch(e){}
 }
 /** 把响铃提前排进音频线程：即使 JS 被后台节流，声音也会准时响 */
-/** 调起 iPhone「快捷指令 → 开始计时」的地址（唯一能穿过静音开关的路）。
-    单独抽成函数是为了能被测试直接断言，不用真的跳转。 */
-function shortcutUrl(sec){
-  return 'shortcuts://run-shortcut?name=' + encodeURIComponent('组间歇') +
-         '&input=text&text=' + Math.round(sec);
+/** 调起 iPhone「快捷指令 → 开始计时」的地址。
+    名字必须和用户建的快捷指令一字不差；**时长放在快捷指令里自己定**（用户要求），
+    所以这里不传 input —— 少一个出错面。
+    拆成 shortcutUrl / openShortcut 两层，是为了测试能拦住真实跳转直接断言。 */
+const SHORTCUT_NAME = '组间歇计时';
+function shortcutUrl(){
+  return 'shortcuts://run-shortcut?name=' + encodeURIComponent(SHORTCUT_NAME);
+}
+let openShortcut = function(url){ try { location.href = url; return true; } catch(e){ return false; } };
+/** 桌面浏览器没有「快捷指令」，所以只在 iOS 上才把提醒交出去 */
+function isIosDevice(){
+  return (navigator.maxTouchPoints || 0) > 0 && /iPhone|iPad|iPod/.test(navigator.userAgent || '');
 }
 function scheduleBeep(endAt){
   if (!AC || AC.state !== 'running') return false;
@@ -1030,7 +1037,7 @@ function renderTimer(){
   if (t.running) st.textContent = '倒计时中';
   else if (!disp.classList.contains('done')) st.textContent = '待机 · ' + fmtSec(t.orig);
   $('tGo').textContent = t.running ? '暂停' : '开始';
-  $('timerNote').textContent = '设定 ' + fmtSec(t.orig);
+  $('timerNote').textContent = '设定 ' + fmtSec(t.orig) + (isIosDevice() ? ' · 响铃走系统计时器' : '');
 }
 
 function renderNote(){
@@ -1127,7 +1134,7 @@ function setDuration(sec){
   sec = Math.max(5, Math.min(3600, Math.round(sec)));
   const t = ui.timer;
   stopTimerTicking();
-  t.orig = sec; t.left = sec; t.running = false; t.endAt = 0;
+  t.orig = sec; t.left = sec; t.running = false; t.endAt = 0; t.fromFull = true;
   DB.settings.timerDefault = sec;
   const d = $('tDisp'); d.classList.remove('done', 'run'); d.textContent = fmtSec(sec);
   save();
@@ -1146,14 +1153,24 @@ function tickOnce(){
   if (left <= 0) finishTimer();
 }
 function startTimer(){
-  const okAudio = audioUnlock();
   const t = ui.timer;
+  // 「新一轮」用显式标志判断，不看剩余时长 —— 刚开始就暂停时剩余仍≈满值，
+  // 用时长比会误判成新一轮，又起一个系统计时器
+  const fresh = !!t.fromFull;
+  audioUnlock();
   t.endAt = Date.now() + t.left * 1000;
   t.running = true;
+  t.fromFull = false;
+  // iOS 上网页不出声，提醒交给系统计时器；桌面浏览器没有「快捷指令」，照旧由网页响
+  t.silent = isIosDevice();
   holdAudio(true);
-  const scheduled = scheduleBeep(t.endAt);   // 提前排进音频线程
-  t.beepOk = !!scheduled;                    // 记下来：到点要是没排上，现场再补一发
-  if (!scheduled) { /* 音频没解锁，交给 finishTimer 兜底 */ }
+  if (t.silent){
+    t.beepOk = true;                          // 网页不需要响
+    if (fresh) openShortcut(shortcutUrl());   // 点「开始」＝起 iPhone 的系统计时器
+  } else {
+    const scheduled = scheduleBeep(t.endAt);  // 提前排进音频线程
+    t.beepOk = !!scheduled;
+  }
   acquireWakeLock();
   stopTimerTicking();
   t.tick = setInterval(tickOnce, 250);       // setInterval：后台也能跑（rAF 会被冻结）
@@ -1165,6 +1182,7 @@ function pauseTimer(){
   if (!t.running) return;
   t.left = Math.max(0, (t.endAt - Date.now()) / 1000);
   t.running = false;
+  t.fromFull = false;                        // 暂停后继续不算新一轮
   stopTimerTicking();
   releaseWakeLock();
   holdAudio(false);
@@ -1183,7 +1201,7 @@ function finishTimer(){
   renderTimer();                 // 按钮从「暂停」回到「开始」（原来漏了这句，会一直卡在暂停）
   // 启动时没排上（例如 iOS 把音频上下文打断了）→ 到点这一瞬间再补一次，
   // 否则会出现「倒计时正常走完、就是不响」这种最难查的情况
-  if (!t.beepOk){
+  if (!t.silent && !t.beepOk){
     audioUnlock();
     t.beepOk = scheduleBeep(Date.now() + 30);
   }
@@ -1193,6 +1211,7 @@ function finishTimer(){
   if (!AC || AC.state !== 'running'){ /* 已经在 scheduleBeep 里排过 */ }
   setTimeout(function(){
     t.left = t.orig;
+    t.fromFull = true;           // 复位即回到「满时长」，下次开始算新一轮
     d.classList.remove('done');
     d.textContent = fmtSec(t.orig);
     renderTimer();
@@ -1279,7 +1298,7 @@ function bindHome(){
   on('tReset', 'click', function(){
     const t = ui.timer;
     t.running = false; stopTimerTicking(); releaseWakeLock(); holdAudio(false);
-    t.left = t.orig;
+    t.left = t.orig; t.fromFull = true;
     const d = $('tDisp'); d.classList.remove('done', 'run');
     d.textContent = fmtSec(t.orig);
     $('tState').textContent = '已重置 · ' + fmtSec(t.orig);
@@ -1483,24 +1502,23 @@ function bindSettings(){
   const scSay = function(html){ $('scHint').innerHTML = html; };
   on('btnScOpen', 'click', function(){
     hz(12);
-    scSay('已打开「快捷指令」App。建好后名字必须是 <b>组间歇</b>（可以先点旁边那个按钮复制）');
-    try { location.href = 'shortcuts://'; } catch(e){ scSay('跳不过去，手动打开「快捷指令」App 吧'); }
+    scSay('已打开「快捷指令」App。名字必须是 <b>' + SHORTCUT_NAME + '</b>（可点旁边那个按钮复制）');
+    try { openShortcut('shortcuts://'); } catch(e){ scSay('跳不过去，手动打开「快捷指令」App 吧'); }
   });
   on('btnScCopy', 'click', function(){
     hz(12);
-    const okSay = function(){ scSay('名字 <b>组间歇</b> 已复制，粘贴成快捷指令的名字就行'); };
+    const okSay = function(){ scSay('名字 <b>' + SHORTCUT_NAME + '</b> 已复制，粘贴成快捷指令的名字就行'); };
+    const fail = function(){ scSay('复制没成功，手打这几个字：<b>' + SHORTCUT_NAME + '</b>'); };
     try {
       if (navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText('组间歇').then(okSay, function(){ scSay('复制没成功，手打这三个字：<b>组间歇</b>'); });
-      } else okSay();
-    } catch(e){ scSay('复制没成功，手打这三个字：<b>组间歇</b>'); }
+        navigator.clipboard.writeText(SHORTCUT_NAME).then(okSay, fail);
+      } else fail();
+    } catch(e){ fail(); }
   });
   on('btnShortcut', 'click', function(){
-    const sec = Math.round(ui.timer.orig);
     hz(12);
-    scSay('正在调起「组间歇」（' + fmtSec(sec) + '）…<br>要是提示「未找到快捷指令」，就是还没建好，先点上面的「打开快捷指令」');
-    try { location.href = shortcutUrl(sec); }
-    catch(e){ scSay('调不起快捷指令，手动打开「时钟」App 计时吧'); }
+    scSay('正在调起「' + SHORTCUT_NAME + '」…<br>要是提示「未找到快捷指令」，就是名字对不上，点上面的「打开快捷指令」核对');
+    openShortcut(shortcutUrl());
   });
 
   /* 调时长：设置页是唯一入口（计时卡片上只剩开始 / 重置） */

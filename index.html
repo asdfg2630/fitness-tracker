@@ -1,0 +1,1740 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>训练记录</title>
+<style>
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --surface-2:#fafafa; --line:#e6e6ea;
+  --text:#1d1d1f; --text-2:#6e6e73; --text-3:#8e8e93; --text-4:#c7c7cc;
+  --accent:#0071e3; --accent-soft:#e8f2fd; --danger:#d70015; --green:#34c759;
+  --radius:20px; --radius-s:13px;
+  --shadow:0 1px 2px rgba(0,0,0,.04), 0 6px 22px rgba(0,0,0,.045);
+  --header-h:54px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.5;letter-spacing:.01em;
+  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+.hidden{display:none !important}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;height:var(--header-h);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 max(14px, env(safe-area-inset-left));
+  background:rgba(245,245,247,.82);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.topbar .brand{font-size:16px;font-weight:600;letter-spacing:.02em}
+.topbar .brand-sub{font-size:12px;color:var(--text-3);font-weight:400;margin-left:8px}
+.icon-btn{
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+  color:var(--text-2);transition:background .18s,transform .12s;
+}
+.icon-btn:active{background:rgba(0,0,0,.07);transform:scale(.92)}
+.icon-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- 今日焦点 ---------- */
+.focus{padding:22px 20px 2px;max-width:720px;margin:0 auto;position:relative}
+.focus-main{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.focus-label{font-size:12.5px;color:var(--text-3);letter-spacing:.1em;font-weight:500}
+.focus-title{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:44px;
+  font-size:40px;line-height:1.1;font-weight:700;letter-spacing:-.02em;
+  margin:4px 0 10px;padding:0;color:var(--text);
+  transition:transform .14s, opacity .14s;
+}
+.focus-title:active{transform:scale(.975);opacity:.72}
+.focus-title.empty{font-size:27px;font-weight:600;color:var(--text);line-height:1.25}
+.focus-title .chev{
+  width:23px;height:23px;flex:0 0 23px;stroke:var(--text-4);fill:none;
+  stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;margin-top:5px;
+}
+/* 进度环（定版外观「磨砂 + 进度环」恒显示，已替代原来的横条） */
+.ring-wrap{position:relative;width:64px;height:64px;flex:0 0 64px;margin-top:2px}
+.ring-wrap svg{width:64px;height:64px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(0,0,0,.08);stroke-width:5}
+.ring-fg{fill:none;stroke:var(--part-accent);stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:125.66;stroke-dashoffset:125.66;
+  transition:stroke-dashoffset .6s cubic-bezier(.22,.61,.36,1)}
+.ring-num{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.cycle-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cycle-text{font-size:13px;color:var(--text-2);font-variant-numeric:tabular-nums}
+
+/* ---------- 右侧滑出面板 ---------- */
+.drawer{position:fixed;inset:0;z-index:100;pointer-events:none}
+.drawer-bg{
+  position:absolute;inset:0;background:rgba(0,0,0,.3);opacity:0;
+  transition:opacity .28s;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+}
+.drawer-panel{
+  position:absolute;top:0;right:0;height:100%;width:min(82vw,330px);
+  background:var(--bg);box-shadow:-12px 0 40px rgba(0,0,0,.14);
+  transform:translateX(102%);transition:transform .3s cubic-bezier(.22,.61,.36,1);
+  display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+}
+.drawer.on{pointer-events:auto}
+.drawer.on .drawer-bg{opacity:1}
+.drawer.on .drawer-panel{transform:translateX(0)}
+
+/* ---- 形态 A：底部弹出面板 + 全屏强压暗（sheet）---- */
+.drawer.mode-sheet .drawer-bg{background:rgba(0,0,0,.52)}
+.drawer.mode-sheet .drawer-panel{
+  top:auto;bottom:0;left:0;right:0;width:auto;height:auto;max-height:74vh;
+  border-radius:24px 24px 0 0;transform:translateY(103%);
+  box-shadow:0 -12px 40px rgba(0,0,0,.2);
+  padding-top:0;padding-bottom:env(safe-area-inset-bottom);
+}
+.drawer.mode-sheet.on .drawer-panel{transform:translateY(0)}
+.drawer.mode-sheet .drawer-panel::before{
+  content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:38px;height:4px;border-radius:2px;background:rgba(0,0,0,.16);
+}
+.drawer.mode-sheet .drawer-head{padding-top:24px}
+
+/* ---- 形态 C：标题下方下拉菜单（不压暗，dropdown）---- */
+.drawer.mode-dropdown .drawer-bg{background:transparent}
+.drawer.mode-dropdown .drawer-panel{
+  top:calc(var(--header-h) + 104px);left:14px;right:14px;width:auto;height:auto;
+  max-height:62vh;border-radius:18px;opacity:0;pointer-events:none;
+  transform:translateY(-12px) scale(.97);
+  transition:transform .2s cubic-bezier(.22,.61,.36,1), opacity .18s;
+  box-shadow:0 14px 44px rgba(0,0,0,.18), 0 0 0 .5px rgba(0,0,0,.06);
+  padding-top:0;padding-bottom:0;
+}
+.drawer.mode-dropdown.on .drawer-panel{opacity:1;pointer-events:auto;transform:none}
+.drawer.mode-dropdown .drawer-head{padding:12px 16px 10px;border-bottom:1px solid var(--line)}
+.drawer.mode-dropdown .drawer-body{padding:6px 0 10px}
+.drawer.mode-dropdown .plist-item{padding:12px 16px;min-height:50px}
+.drawer.mode-dropdown .plist-item .nm{font-size:17px}
+
+/* ---- 形态 D：标题下方浮层（轻压暗 + 更大更凸 + 弹出/收回动画）---- */
+.drawer.mode-popover .drawer-bg{background:rgba(0,0,0,.18)}
+.drawer.mode-popover .drawer-panel{
+  top:calc(var(--header-h) + 74px);left:10px;right:10px;width:auto;height:auto;
+  max-height:72vh;border-radius:24px;
+  opacity:0;pointer-events:none;
+  transform:translateY(-10px) scale(.9);
+  transform-origin:50% 0%;                       /* 从标题那一侧展开，像从标题弹出 */
+  transition:transform .28s cubic-bezier(.34,1.42,.5,1), opacity .2s ease;
+  box-shadow:0 26px 64px rgba(0,0,0,.26), 0 2px 8px rgba(0,0,0,.08), 0 0 0 .5px rgba(0,0,0,.05);
+  padding-top:0;padding-bottom:0;
+}
+.drawer.mode-popover.on .drawer-panel{opacity:1;pointer-events:auto;transform:none}
+.drawer.mode-popover .drawer-head{padding:14px 18px 11px;border-bottom:1px solid var(--line)}
+.drawer.mode-popover .drawer-body{padding:6px 0 8px}
+.drawer.mode-popover .plist-item{padding:13px 18px;min-height:52px}
+.drawer.mode-popover .plist-item .nm{font-size:18px}
+
+/* ---- 形态 E：矮版底部弹出 + 压暗（占约一半屏，不满高）---- */
+.drawer.mode-sheetlow .drawer-bg{background:rgba(0,0,0,.45)}
+.drawer.mode-sheetlow .drawer-panel{
+  top:auto;bottom:0;left:0;right:0;width:auto;height:auto;max-height:54vh;
+  border-radius:22px 22px 0 0;transform:translateY(103%);
+  box-shadow:0 -12px 40px rgba(0,0,0,.18);
+  padding-top:0;padding-bottom:env(safe-area-inset-bottom);
+  transition:transform .3s cubic-bezier(.22,.61,.36,1);
+}
+.drawer.mode-sheetlow.on .drawer-panel{transform:translateY(0)}
+.drawer.mode-sheetlow .drawer-panel::before{
+  content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:38px;height:4px;border-radius:2px;background:rgba(0,0,0,.16);
+}
+.drawer.mode-sheetlow .drawer-head{padding-top:24px}
+.drawer.mode-sheetlow .plist-item{padding:12px 18px;min-height:50px}
+.drawer-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px 12px;border-bottom:1px solid var(--line);
+}
+.drawer-head .t{font-size:16px;font-weight:600}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 0 24px}
+.plist-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;text-align:left;padding:15px 18px;min-height:56px;
+  border-bottom:1px solid var(--line);transition:background .16s,transform .12s;
+}
+.plist-item:active{background:rgba(0,0,0,.05);transform:scale(.99)}
+/* 没练：正常粗黑；练过：灰色细体 */
+.plist-item .nm{font-size:19px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.plist-item.done .nm{font-weight:400;color:var(--text-3)}
+/* 当前项只用底色 + 左侧竖条标识，绝不改名字颜色（名字颜色只表达练没练） */
+.plist-item.cur{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.plist-item.cur .nm{font-weight:600}
+.plist-item.done.cur .nm{font-weight:400}
+
+/* ---------- 卡片 ---------- */
+main{max-width:720px;margin:0 auto;padding:16px 16px 0}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 0;overflow:hidden}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 20px 10px}
+.card-title{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.card-note{font-size:13px;color:var(--text-3);font-variant-numeric:tabular-nums}
+
+/* 动作行（完成键模式） */
+.ex{display:flex;align-items:center;gap:12px;padding:9px 16px 9px 20px;border-top:1px solid var(--line);min-height:60px}
+.ex:first-of-type{border-top:0}
+.ex-name{flex:1;min-width:0;font-size:16.5px;font-weight:500;line-height:1.35}
+.ex-sub{font-size:12.5px;color:var(--text-3);margin-top:1px}
+/* 完成键 = iOS 风格胶囊开关（触控区 44px 高，内部视觉轨道 51×31） */
+.done-key{
+  flex:0 0 auto;width:51px;height:44px;background:transparent;
+  display:grid;place-items:center;padding:0;transition:transform .12s;
+}
+.done-key:active{transform:scale(.93)}
+.done-key .track{
+  position:relative;width:51px;height:31px;border-radius:16px;background:#e9e9eb;
+  transition:background .26s cubic-bezier(.22,.61,.36,1);
+}
+.done-key .knob{
+  position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2), 0 0 0 .5px rgba(0,0,0,.05);
+  transition:transform .26s cubic-bezier(.22,.61,.36,1);
+}
+.done-key.on .track{background:var(--green)}
+.done-key.on .knob{transform:translateX(20px)}
+.ex.done .ex-name{color:var(--text-3);font-weight:400;text-decoration:line-through;text-decoration-color:var(--text-4)}
+.ex.done .ex-sub{color:var(--text-4)}
+
+/* 组点（可选模式） */
+.rep-row{display:flex;align-items:center;gap:0;margin-top:5px;flex-wrap:wrap}
+.dot{position:relative;width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;padding:0;transition:transform .12s}
+.dot:active{transform:scale(.9)}
+.dot::before{content:"";position:absolute;width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line)}
+.dot>span{position:relative;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums;pointer-events:none}
+.dot.on::before{background:var(--accent);border-color:var(--accent)}
+.dot.on>span{color:#fff;font-weight:600}
+.dot.add>span{font-size:16px}
+.dot.add::before{border-style:dashed}
+
+.empty{padding:22px 20px;color:var(--text-3);font-size:14px;text-align:center;line-height:1.6}
+.finish-hint{padding-top:11px;text-align:center;font-size:13px;color:var(--text-3);line-height:1.55}
+.finish-hint b{color:var(--text);font-weight:600}
+
+/* 按钮 */
+.btn{
+  min-height:56px;padding:0 22px;border-radius:16px;font-size:16px;font-weight:500;
+  background:var(--text);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .18s,transform .12s;user-select:none;
+}
+.btn:active{transform:scale(.975);opacity:.85}
+.btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow)}
+.btn.blue{background:var(--accent)}
+.btn.danger{background:var(--surface);color:var(--danger);border:1px solid rgba(215,0,21,.25)}
+.btn.sm{min-height:44px;padding:0 16px;font-size:14px;border-radius:12px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ---------- 计时器（干净版） ---------- */
+#timerCard{margin-top:16px}
+.timer-wrap{padding:6px 20px 20px;text-align:center}
+.timer-display{
+  font-size:68px;font-weight:700;letter-spacing:-.035em;line-height:1.05;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;transition:color .2s;
+}
+.timer-display.run{color:var(--accent)}
+.timer-display.done{color:var(--green)}
+.timer-state{font-size:13px;color:var(--text-3);min-height:20px;margin-top:2px}
+.timer-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+
+/* ---------- 便签 / 日志 ---------- */
+#noteCard{margin-top:16px}
+.note-body{padding:0 20px 18px}
+.note-body textarea{
+  width:100%;min-height:104px;resize:vertical;border:0;outline:none;
+  background:var(--surface-2);border-radius:var(--radius-s);padding:14px 15px;
+  font-size:15px;line-height:1.6;
+}
+.note-body textarea::placeholder{color:var(--text-3)}
+#logCard{margin-top:16px}
+.log-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 4px;gap:8px}
+.log-month{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.log-nav{display:flex;gap:6px}
+.log-nav button{width:44px;height:44px;border-radius:50%;color:var(--text-2);font-size:19px;display:grid;place-items:center;transition:background .16s,transform .12s}
+.log-nav button:active{background:rgba(0,0,0,.06);transform:scale(.92)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin:14px 0 0}
+.stat{background:var(--surface);padding:14px 8px;text-align:center}
+.stat .v{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:13px;font-weight:500;color:var(--text-3);margin-left:2px}
+.stat .k{font-size:12px;color:var(--text-3);margin-top:2px}
+.cal{padding:16px 14px 6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-w{font-size:11px;color:var(--text-3);text-align:center;padding-bottom:6px}
+.cal-cell{
+  position:relative;min-height:44px;border-radius:11px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:13px;color:var(--text-2);
+  background:transparent;font-variant-numeric:tabular-nums;
+}
+.cal-cell.pad{visibility:hidden}
+.cal-cell.today{outline:1.5px solid var(--accent);outline-offset:-1.5px;color:var(--accent);font-weight:600}
+.cal-cell.hit{background:#e6f6eb;color:#1c7a37;font-weight:600}
+.cal-cell.hit .g{font-size:10px;line-height:1;margin-top:1px;opacity:.9}
+.cal-cell.hit .plus{position:absolute;top:2px;right:3px;font-size:9px;color:#1c7a37}
+.legend{padding:2px 20px 14px;font-size:12px;color:var(--text-3)}
+.day-detail{padding:0 20px 16px;font-size:14px;color:var(--text-2)}
+.day-detail b{color:var(--text);font-weight:600}
+
+/* ---------- 设置页 ---------- */
+/* 设置页顶栏：fixed 常驻。
+   原先沿用 .topbar 的 position:sticky —— 实测在 iPhone 上会被甩到页面中部
+   （手机截图按条带量到顶栏落在 y≈420 CSS px，而最顶上 180~400px 一段墨迹 0.00%），
+   拉回顶部也不复位。fixed 元素不参与页面滚动，从根上避免这种位移。 */
+#settingsView > .topbar{position:fixed;top:0;left:0;right:0}
+#settingsView main{padding-top:calc(var(--header-h) + 14px)}
+
+/* 组间歇设置：当前时长 + 档位 + 自定义新增 */
+.dur-now{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;min-width:62px;text-align:center}
+.dur-block{padding:12px 4px;border-top:1px solid var(--line)}
+.dur-cap{font-size:12.5px;color:var(--text-3);margin-bottom:8px}
+.dur-chips{display:flex;gap:6px;flex-wrap:wrap}
+.section-title{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--text-3);margin:22px 4px 9px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sec-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.hint{font-size:12.5px;color:var(--text-3);padding:10px 18px 14px;line-height:1.6}
+.hint:first-child{padding-top:14px}
+.row-inline{display:flex;gap:8px;padding:12px 18px;align-items:center;flex-wrap:wrap}
+.txt{flex:1 1 auto;min-width:92px;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface-2);outline:none;overflow:hidden;text-overflow:ellipsis}
+.txt:focus{border-color:var(--accent);background:#fff}
+
+/* 大项折叠头 */
+.acc-head{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:14px 16px;min-height:56px;transition:background .16s;
+}
+.acc-head:active{background:rgba(0,0,0,.04)}
+.acc-head .nm{flex:1;min-width:0;font-size:17px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-head .cnt{font-size:12.5px;color:var(--text-3);white-space:nowrap}
+.acc-head .arw{width:18px;height:18px;flex:0 0 18px;stroke:var(--text-4);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.acc.open .acc-head .arw{transform:rotate(90deg)}
+.acc-body{display:none;border-top:1px solid var(--line)}
+.acc.open .acc-body{display:block}
+
+/* 设置里的动作行 */
+.ex-edit{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--line);min-height:52px;background:var(--surface)}
+.ex-edit:first-child{border-top:0}
+.ex-edit .nm{flex:1;min-width:0;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ex-edit.dragging{background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.16);border-radius:12px;opacity:.96;z-index:5;position:relative}
+.mini{min-width:44px;width:auto;height:44px;padding:0 11px;border-radius:11px;display:grid;place-items:center;color:var(--text-2);font-size:13px;white-space:nowrap;background:var(--surface-2);transition:background .16s,transform .12s}
+.mini:active{background:rgba(0,0,0,.09);transform:scale(.92)}
+.mini.del{color:var(--danger)}
+.grip{
+  width:44px;height:44px;flex:0 0 44px;border-radius:11px;display:grid;place-items:center;
+  background:var(--surface-2);touch-action:none;cursor:grab;
+}
+.grip:active{cursor:grabbing}
+.grip svg{width:18px;height:18px;stroke:var(--text-3);fill:none;stroke-width:2;stroke-linecap:round}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translate(-50%,16px);
+  background:rgba(29,29,31,.94);color:#fff;padding:11px 20px;border-radius:14px;font-size:14px;
+  opacity:0;pointer-events:none;transition:opacity .24s,transform .24s;z-index:200;max-width:82vw;text-align:center;
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:340px){ .timer-display{font-size:56px} .focus-title{font-size:34px} }
+
+/* ======================================================================
+   外观 · 定版（2026-10-04）：磨砂玻璃 + 进度环
+   用户从 8 套候选里定为「磨砂 + 进度环」，合并成唯一一套；
+   其余 7 套（纯净 / 柔和 / 配色 / 微纹理 / 渐变 / 药丸）已删除。
+   要再换外观：只改这一块 + applyTheme() 的 THEME_CLASS，别的地方不用碰。
+   ====================================================================== */
+:root{ --part-accent:#0071e3 }
+
+body.theme-frost{ background:#f4f5f8 }
+/* 底色光晕用 fixed 伪元素承载，不用 background-attachment:fixed ——
+   后者在 iOS Safari 上不可靠（会被当 scroll 处理，光晕被拉到整页高度上）。
+   body 无自建层叠上下文，故负 z-index 伪元素落在 canvas 之上、内容之下。 */
+body.theme-frost::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(1100px 520px at 6% -8%, #e6effc 0%, transparent 62%),
+    radial-gradient(900px 520px at 106% 6%, #fdebf1 0%, transparent 58%),
+    #f4f5f8;
+}
+/* 毛玻璃卡片 */
+body.theme-frost .card{
+  background:rgba(255,255,255,.66);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
+  backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid rgba(255,255,255,.72);
+  box-shadow:0 1px 2px rgba(16,24,40,.04), 0 14px 34px rgba(16,24,40,.07);
+}
+body.theme-frost .topbar{background:rgba(244,245,248,.6)}
+body.theme-frost .drawer-panel{
+  background:rgba(245,246,249,.9);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
+}
+body.theme-frost .note-body textarea,
+body.theme-frost .txt{background:rgba(255,255,255,.55)}
+body.theme-frost .ex{padding-left:20px}
+
+/* 进度环：圆环替代横条（原「进度环」主题） */
+body.theme-frost .focus-title{font-size:38px}
+body.theme-frost .cycle-row{margin-top:2px}
+
+/* ---------- 打印 ---------- */
+@media print{
+  :root{ --bg:#fff; --shadow:none }
+  body{background:#fff;padding-bottom:0}
+  .icon-btn,#timerCard,#btnFinish,#finishHint,.log-nav,#btnEndCycle,.legend,.drawer{display:none !important}
+  .card{box-shadow:none;border:1px solid #e6e6ea;break-inside:avoid;margin-bottom:12px}
+  .topbar{position:static;border-bottom:1px solid #e6e6ea}
+  .cal-cell.hit{background:#eef7f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+</head>
+<body>
+
+<!-- ============ 首页 ============ -->
+<div id="homeView">
+
+  <header class="topbar">
+    <div class="brand">训练记录<span class="brand-sub" id="todayLabel"></span></div>
+    <button class="icon-btn" id="btnSettings" title="设置" aria-label="设置">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <section class="focus">
+    <div class="focus-main">
+      <div style="flex:1;min-width:0">
+        <div class="focus-label" id="focusLabel">今日训练</div>
+        <button class="focus-title" id="focusTitle"></button>
+      </div>
+      <div class="ring-wrap" id="ringWrap" aria-hidden="true">
+        <svg viewBox="0 0 48 48">
+          <circle class="ring-bg" cx="24" cy="24" r="20"/>
+          <circle class="ring-fg" id="ringFg" cx="24" cy="24" r="20"/>
+        </svg>
+        <span class="ring-num" id="ringNum">0/5</span>
+      </div>
+    </div>
+    <div class="cycle-row" id="cycleRow"></div>
+  </section>
+
+  <main>
+    <section class="card" id="exCard">
+      <div class="card-head">
+        <div class="card-title" id="exTitle">动作</div>
+        <div class="card-note" id="exNote"></div>
+      </div>
+      <div id="exList"></div>
+      <div style="padding:14px 20px 18px">
+        <button class="btn block" id="btnFinish">完成今日训练</button>
+        <div class="finish-hint" id="finishHint"></div>
+      </div>
+    </section>
+
+    <section class="card" id="timerCard">
+      <div class="card-head">
+        <div class="card-title">组间歇倒计时</div>
+        <div class="card-note" id="timerNote"></div>
+      </div>
+      <div class="timer-wrap">
+        <div class="timer-display" id="tDisp">2:00</div>
+        <div class="timer-state" id="tState">待机</div>
+        <div class="timer-btns">
+          <button class="btn" id="tGo">开始</button>
+          <button class="btn ghost" id="tReset">重置</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="noteCard">
+      <div class="card-head">
+        <div class="card-title">便签</div>
+        <div class="card-note" id="noteSaved">自动保存</div>
+      </div>
+      <div class="note-body">
+        <textarea id="note" placeholder="训练感受、下次要加的重量、身体的信号……"></textarea>
+      </div>
+    </section>
+
+    <section class="card" id="logCard">
+      <div class="log-head">
+        <div class="log-month" id="logMonth">—</div>
+        <div class="log-nav">
+          <button id="logPrev" aria-label="上个月">‹</button>
+          <button id="logNext" aria-label="下个月">›</button>
+        </div>
+      </div>
+      <div class="stats" id="logStats"></div>
+      <div class="cal"><div class="cal-grid" id="calGrid"></div></div>
+      <div class="legend">点任意一天看细节</div>
+      <div class="day-detail" id="dayDetail"></div>
+      <div style="padding:0 20px 18px">
+        <button class="btn ghost block sm" id="btnEndCycle">提前结束本轮循环</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ 设置页 ============ -->
+<div id="settingsView" class="hidden">
+  <header class="topbar">
+    <button class="btn sm ghost" id="btnEditMode" style="margin-left:-6px">编辑</button>
+    <div class="brand" style="font-size:15px;color:var(--text-2)">设置</div>
+    <button class="icon-btn" id="btnDone" title="完成" aria-label="完成">
+      <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+    </button>
+  </header>
+  <main>
+    <div class="section-title">训练项目</div>
+    <div class="sec-card" id="partsCard"></div>
+    <div class="row-inline" id="addPartRow" style="padding:12px 4px 0">
+      <input class="txt" id="newPart" placeholder="新增大项，例如：核心" maxlength="12">
+      <button class="btn sm blue" id="btnAddPart">添加</button>
+    </div>
+    <div class="hint">周期长度 = 大项个数。点大项名展开它的动作。</div>
+
+    <div class="section-title">组间歇 · 计时</div>
+    <div class="sec-card">
+      <div class="row-inline" style="justify-content:space-between">
+        <div style="flex:1;min-width:110px">
+          <div style="font-size:15px">当前时长</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px">倒计时从它开始</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn sm ghost" id="btnDurMinus">−15s</button>
+          <span class="dur-now" id="durNow">2:00</span>
+          <button class="btn sm ghost" id="btnDurPlus">+15s</button>
+        </div>
+      </div>
+      <div class="dur-block">
+        <div class="dur-cap">档位 · 点一下切过去，长按删除</div>
+        <div class="dur-chips" id="durChips"></div>
+      </div>
+      <div class="row-inline" style="border-top:1px solid var(--line)">
+        <input class="txt" id="newDur" inputmode="numeric" placeholder="秒数，例如 90" maxlength="4">
+        <button class="btn sm blue" id="btnAddDur">添加档位</button>
+      </div>
+    </div>
+
+    <div class="section-title">通用</div>
+    <div class="sec-card">
+      <div class="row-inline" style="justify-content:space-between">
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:15px">记录组数</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px">打开后动作下方出现组点，可以记每组</div>
+        </div>
+        <button class="btn sm ghost" id="btnTrackSets">关闭</button>
+      </div>
+      <div class="row-inline" style="justify-content:space-between;border-top:1px solid var(--line)">
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:15px">震动反馈</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px">iPhone 的浏览器不支持震动，安卓有效</div>
+        </div>
+        <button class="btn sm ghost" id="btnHaptic">开启</button>
+      </div>
+      <div class="row-inline" style="justify-content:space-between;border-top:1px solid var(--line)">
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:15px">响铃通知</div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-top:2px">倒计时结束时弹系统通知，切到别的应用也能看到</div>
+        </div>
+        <button class="btn sm ghost" id="btnNotify">开启</button>
+      </div>
+    </div>
+
+    <div class="section-title">数据</div>
+    <div class="sec-card">
+      <div class="row-inline">
+        <button class="btn sm ghost" id="btnExportPlan">导出训练计划</button>
+        <button class="btn sm ghost" id="btnImportPlan">导入训练计划</button>
+      </div>
+      <div class="row-inline" style="border-top:1px solid var(--line)">
+        <button class="btn sm ghost" id="btnExportAll">导出完整备份</button>
+        <button class="btn sm ghost" id="btnImportAll">导入完整备份</button>
+      </div>
+      <div class="row-inline" style="border-top:1px solid var(--line)">
+        <button class="btn sm ghost" id="btnPasteToggle">粘贴文本导入计划</button>
+      </div>
+      <div class="row-inline hidden" id="pasteBox" style="border-top:1px solid var(--line);display:block">
+        <textarea id="pasteArea" placeholder="把训练计划 JSON 内容粘到这里，然后点导入" style="width:100%;min-height:110px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2);outline:none;resize:vertical"></textarea>
+        <button class="btn sm blue" id="btnPasteGo" style="margin-top:8px">导入</button>
+      </div>
+      <div class="row-inline" style="border-top:1px solid var(--line)">
+        <button class="btn sm danger" id="btnReset">清空全部数据</button>
+      </div>
+      <div class="hint">「训练计划」只含大项和动作，导入时不动你的打卡记录；「完整备份」含记录与便签，会整体覆盖。手机上导文件不方便时，可以用「粘贴文本导入」。</div>
+      <input type="file" id="filePlan" accept=".json,application/json" class="hidden">
+      <input type="file" id="fileAll" accept=".json,application/json" class="hidden">
+    </div>
+
+    <div class="section-title">关于</div>
+    <div class="sec-card">
+      <div class="row-inline" style="font-size:14px;color:var(--text-2)">今天：<b id="editToday" style="color:var(--text)"></b></div>
+      <div class="hint">数据只存在这台设备的浏览器本地，不会上传。换设备或清缓存前请先导出。</div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ 右侧滑出面板 ============ -->
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-bg" id="drawerBg"></div>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <div class="t">今天练什么？</div>
+      <button class="icon-btn" id="drawerClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+</aside>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ========================================================================
+   训练记录 · 单文件本地应用
+   数据全部存在 localStorage，不上传任何服务器；出厂不含任何训练计划
+   ======================================================================== */
+
+const LS_KEY = 'fitnessTrack.v1';
+
+function mkId(p){ return p + '_' + Math.random().toString(36).slice(2, 8); }
+function mkEx(name){ return { id: mkId('ex'), name: name }; }
+
+/* ---------------- 工具 ---------------- */
+function dstr(x){
+  const d = x instanceof Date ? x : new Date(x);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function today(){ return dstr(new Date()); }
+function fmtMonth(y, m){ return y + ' 年 ' + (m+1) + ' 月'; }
+function fmtSec(s){
+  s = Math.max(0, Math.round(s));
+  return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+}
+const DOW = ['日','一','二','三','四','五','六'];
+function $(id){ return document.getElementById(id); }
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function on(id, ev, fn){
+  const el = $(id);
+  if (!el){ console.warn('[训练记录] 绑定跳过，找不到 #' + id); return null; }
+  el.addEventListener(ev, fn);
+  return el;
+}
+let toastTimer = 0;
+function toast(msg){
+  const el = $('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 2000);
+}
+
+/* ---------------- 触感反馈 ---------------- */
+function hz(ms){
+  if (!DB || !DB.settings.haptic) return;
+  try { if (navigator.vibrate) navigator.vibrate(ms || 10); } catch(e){}
+}
+/** 全局：所有可点元素给一次轻震（安卓有效；iOS Safari 无此 API，静默跳过） */
+function bindGlobalHaptic(){
+  document.addEventListener('pointerdown', function(e){
+    iosUnmuteAudio();   // 借首次手势把 iOS 静音档下的音频会话解开
+    const t = e.target.closest && e.target.closest('button, .btn, .dot, .plist-item, .acc-head, .grip, .chip');
+    if (t) hz(8);
+  }, { passive: true });
+}
+
+/* ---------------- 外观（定版唯一一套：磨砂 + 进度环） ---------------- */
+const THEME_CLASS = 'theme-frost';
+function applyTheme(){
+  if (document.body.className !== THEME_CLASS) document.body.className = THEME_CLASS;
+}
+function applyAccent(){
+  document.documentElement.style.setProperty('--part-accent', '#0071e3');
+}
+
+/* ---------------- 数据 ---------------- */
+let DB = null;
+let ui = {
+  sel: null, month: null, selDay: null,
+  editMode: false, openAcc: {},
+  titleForm: 'popover',       // 定版＝标题下方浮层（v4-形态对比图里的第 4 种）。其余 4 种的 CSS 先留着，改这里即可切
+  timer: { orig: 120, left: 120, running: false, endAt: 0, tick: 0 }
+};
+
+function blankData(){
+  return {
+    version: 2,
+    parts: [],
+    settings: {
+      timerDefault: 120,
+      timerDurations: [60, 90, 105, 120, 150, 180],
+      trackSets: false,
+      haptic: true
+    },
+    cycle: { start: today(), parts: [] },
+    history: [],
+    done: {},
+    sets: {},
+    logs: [],
+    note: ''
+  };
+}
+function load(){
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch(e){}
+  if (!raw) return blankData();
+  try {
+    const d = JSON.parse(raw);
+    const b = blankData();
+    const out = Object.assign(b, d);
+    out.settings = Object.assign(b.settings, d.settings || {});
+    out.cycle = Object.assign(b.cycle, d.cycle || {});
+    out.parts = Array.isArray(d.parts) ? d.parts : [];
+    out.history = Array.isArray(d.history) ? d.history : [];
+    out.logs = Array.isArray(d.logs) ? d.logs : [];
+    out.sets = d.sets && typeof d.sets === 'object' ? d.sets : {};
+    out.done = d.done && typeof d.done === 'object' ? d.done : {};
+    return out;
+  } catch(e){
+    console.warn('数据读取失败，回到空数据', e);
+    return blankData();
+  }
+}
+let saveTimer = 0;
+function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 250); }
+function saveNow(){
+  clearTimeout(saveTimer);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); return true; }
+  catch(e){ toast('保存失败：浏览器存储已满或被禁用'); return false; }
+}
+
+/* ---------------- 声音 / 后台提醒 ---------------- */
+let AC = null, holdSrc = null, wakeLock = null;
+function audioUnlock(){
+  try {
+    if (!AC){
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return false;
+      AC = new C();
+    }
+    if (AC.state === 'suspended') AC.resume();
+    return AC.state === 'running';
+  } catch(e){ return false; }
+}
+
+/* ---- iOS 静音档也想出声（尽力而为）----
+   iOS 的静音开关会掐掉 Web Audio，但 HTML5 <audio> 不受影响。
+   手法取自 feross/unmute-ios-audio：在首次用户手势里同时
+   ① 播一个循环的静音 <audio> ② 启动一个静音 Web Audio 源；
+   两者都成功会把音频会话提到「playback」档，之后 Web Audio 也能穿过静音开关。
+   ⚠️ 本机没有 iOS，无法自测 —— 以你手机上实测为准；不生效也不影响原本的响铃。 */
+let iosAudioDone = false, iosAudioEl = null;
+function iosUnmuteAudio(){
+  if (iosAudioDone) return;
+  const C = window.webkitAudioContext;
+  if (!(navigator.maxTouchPoints > 0 && C != null)){ iosAudioDone = true; return; }   // 只在 iOS 上折腾
+  iosAudioDone = true;
+  try {
+    const el = document.createElement('audio');
+    el.setAttribute('x-webkit-airplay', 'deny');   // 别占 iOS 控制中心的媒体卡片
+    el.preload = 'auto';
+    el.loop = true;
+    el.src = 'data:audio/wav;base64,UklGRisAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQcAAACAgICAgICAAAA=';
+    el.load();
+    const p = el.play();
+    if (p && p.then) p.then(function(){ iosAudioEl = el; }, function(){ try { el.pause(); } catch(e){} });
+    if (audioUnlock()){
+      const src = AC.createBufferSource();
+      src.buffer = AC.createBuffer(1, 1, 22050);
+      src.connect(AC.destination);
+      src.start();
+    }
+  } catch(e){}
+}
+
+/** 用极轻的静音循环占住音频会话，降低后台被挂起的概率 */
+function holdAudio(on_){
+  try {
+    if (!AC) return;
+    if (on_){
+      if (holdSrc) return;
+      const buf = AC.createBuffer(1, AC.sampleRate * 1, AC.sampleRate);
+      const src = AC.createBufferSource();
+      const g = AC.createGain();
+      g.gain.value = 0.0008;
+      src.buffer = buf; src.loop = true;
+      src.connect(g); g.connect(AC.destination);
+      src.start();
+      holdSrc = src;
+    } else if (holdSrc){
+      try { holdSrc.stop(); } catch(e){}
+      holdSrc = null;
+    }
+  } catch(e){}
+}
+/** 把响铃提前排进音频线程：即使 JS 被后台节流，声音也会准时响 */
+function scheduleBeep(endAt){
+  if (!AC || AC.state !== 'running') return false;
+  try {
+    const lead = Math.max(0.02, (endAt - Date.now()) / 1000);
+    const t0 = AC.currentTime + lead;
+    // 两轮，每轮三声（高-高-更高）。
+    // 音量 0.4 → 约 0.64（原来的 1.6 倍，实测峰值 0.64）；
+    // 另叠一层 triangle 补谐波：手机小喇叭低频很弱，纯 sine 发闷，加谐波更「透」。
+    const PATTERN = [880, 880, 1318.5];
+    for (let round = 0; round < 2; round++){
+      PATTERN.forEach(function(freq, i){
+        const t = t0 + round * 1.05 + i * 0.32;
+        [['sine', 0.45], ['triangle', 0.19]].forEach(function(w){
+          const osc = AC.createOscillator();
+          const g = AC.createGain();
+          osc.type = w[0];
+          osc.frequency.setValueAtTime(freq, t);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(w[1], t + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+          osc.connect(g); g.connect(AC.destination);
+          osc.start(t); osc.stop(t + 0.30);
+        });
+      });
+    }
+    return true;
+  } catch(e){ return false; }
+}
+function vibratePattern(){
+  try { if (navigator.vibrate) navigator.vibrate([200, 90, 200, 90, 380]); } catch(e){}
+}
+async function requestNotify(){
+  try {
+    if (!('Notification' in window)) return 'unsupported';
+    if (Notification.permission === 'granted') return 'granted';
+    if (Notification.permission === 'denied') return 'denied';
+    const r = await Notification.requestPermission();
+    return r;
+  } catch(e){ return 'error'; }
+}
+function fireNotify(){
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const n = new Notification('组间歇结束', { body: '可以开始下一组了', tag: 'rest-timer', renotify: true });
+    setTimeout(function(){ try { n.close(); } catch(e){} }, 8000);
+  } catch(e){}
+}
+async function acquireWakeLock(){
+  try {
+    if (!navigator.wakeLock || !navigator.wakeLock.request) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch(e){}
+}
+function releaseWakeLock(){
+  try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch(e){}
+}
+
+/* ---------------- 打卡 / 周期 ---------------- */
+function partOf(id){
+  for (let i = 0; i < DB.parts.length; i++) if (DB.parts[i].id === id) return DB.parts[i];
+  return null;
+}
+function hasLogged(partId, ds){ return DB.logs.some(function(l){ return l.date === ds && l.partId === partId; }); }
+function cycleLen(){ return Math.max(1, DB.parts.length); }
+function cycleDoneCount(){ return (DB.cycle.parts || []).length; }
+function nextPartId(afterId){
+  if (!DB.parts.length) return null;
+  if (!afterId){
+    const last = DB.logs[DB.logs.length - 1];
+    if (last){
+      const i = DB.parts.findIndex(function(p){ return p.id === last.partId; });
+      if (i >= 0) return DB.parts[(i+1) % DB.parts.length].id;
+    }
+    return DB.parts[0].id;
+  }
+  const i = DB.parts.findIndex(function(p){ return p.id === afterId; });
+  if (i < 0) return DB.parts[0].id;
+  return DB.parts[(i+1) % DB.parts.length].id;
+}
+function initSelection(){
+  const t = today();
+  const tl = DB.logs.filter(function(l){ return l.date === t; });
+  ui.sel = tl.length ? tl[tl.length - 1].partId : nextPartId(null);
+}
+function addLog(partId, ds){
+  if (hasLogged(partId, ds)) return false;
+  DB.logs.push({ date: ds, partId: partId, ts: Date.now() });
+  DB.logs.sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : a.ts - b.ts); });
+  if ((DB.cycle.parts || []).indexOf(partId) < 0) DB.cycle.parts.push(partId);
+  saveNow();
+  return true;
+}
+function closeCycle(completed){
+  DB.history.push({ start: DB.cycle.start, end: today(), parts: (DB.cycle.parts||[]).slice(), len: cycleLen(), completed: !!completed });
+  DB.cycle = { start: today(), parts: [] };
+  saveNow();
+}
+/* 动作完成态（按日期） */
+function dayDone(ds){ return DB.done[ds] || (DB.done[ds] = {}); }
+function isExDone(ds, exId){ return !!dayDone(ds)[exId]; }
+function toggleExDone(ds, exId){
+  const d = dayDone(ds);
+  if (d[exId]) delete d[exId]; else d[exId] = true;
+  save();
+  return !!d[exId];
+}
+function doneCountOf(part, ds){
+  if (!part) return 0;
+  return part.exercises.filter(function(e){ return isExDone(ds, e.id); }).length;
+}
+
+/* ---------------- 渲染：首页 ---------------- */
+function renderHome(){
+  applyTheme();
+  applyAccent();
+  renderFocus();
+  renderExercises();
+  renderTimer();
+  renderNote();
+  renderLog();
+}
+
+function renderFocus(){
+  const titleEl = $('focusTitle'), labelEl = $('focusLabel'), rowEl = $('cycleRow');
+  if (!DB.parts.length){
+    labelEl.textContent = '今日训练';
+    titleEl.className = 'focus-title empty';
+    titleEl.innerHTML = '我们今天来练什么？' + chevSvg();
+    rowEl.innerHTML = '<span class="cycle-text">还没有训练大项，点标题或右上角设置去添加</span>';
+    renderCycleVisuals();
+    return;
+  }
+  const p = partOf(ui.sel) || DB.parts[0];
+  if (p && p.id !== ui.sel) ui.sel = p.id;
+  const len = cycleLen(), done = cycleDoneCount();
+  const idx = DB.parts.findIndex(function(x){ return x.id === ui.sel; }) + 1;
+  labelEl.textContent = '今日训练';
+  titleEl.className = 'focus-title';
+  titleEl.innerHTML = esc(p ? p.name : '—') + chevSvg();
+  rowEl.innerHTML =
+    '<span class="cycle-text">本轮进度 <b style="color:#1d1d1f">' + done + ' / ' + len + '</b></span>' +
+    '<span class="cycle-text">·</span><span class="cycle-text">第 ' + idx + ' 项</span>' +
+    '<span class="cycle-text">·</span><span class="cycle-text">开始于 ' + esc(DB.cycle.start) + '</span>';
+  renderCycleVisuals();
+}
+function chevSvg(){
+  return '<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+}
+/** 进度环（定版外观恒显示） */
+function renderCycleVisuals(){
+  const len = cycleLen(), done = cycleDoneCount();
+  const ratio = DB.parts.length ? (done / len) : 0;
+  const fg = $('ringFg');
+  if (fg) fg.style.strokeDashoffset = String(125.66 * (1 - ratio));
+  const num = $('ringNum');
+  if (num) num.textContent = DB.parts.length ? (done + '/' + len) : '–';
+}
+
+function renderExercises(){
+  const p = partOf(ui.sel);
+  const list = $('exList');
+  if (!p){
+    $('exTitle').textContent = '动作';
+    $('exNote').textContent = '';
+    list.innerHTML = '<div class="empty">先选一个训练部位</div>';
+    $('btnFinish').disabled = true;
+    $('finishHint').textContent = '';
+    return;
+  }
+  const ds = today();
+  $('exTitle').textContent = p.name + ' · 动作';
+  const useSets = !!DB.settings.trackSets;
+  const daySets = DB.sets[ds] || {};
+  let totalSets = 0;
+
+  const rows = p.exercises.map(function(ex){
+    const doneEx = isExDone(ds, ex.id);
+    const n = Math.max(0, Math.min(10, Number(daySets[ex.id]) || 0));
+    totalSets += n;
+    let body;
+    if (useSets){
+      const dots = [];
+      for (let i = 1; i <= 10; i++){
+        dots.push('<button class="dot' + (i <= n ? ' on' : '') + '" data-ex="' + esc(ex.id) + '" data-i="' + i + '"><span>' + i + '</span></button>');
+      }
+      body = '<div class="rep-row">' + dots.join('') + '<button class="dot add" data-add="' + esc(ex.id) + '"><span>+</span></button></div>';
+    } else {
+      body = '';
+    }
+    const sub = useSets ? (n > 0 ? '已记 ' + n + ' 组' : '') : '';
+    return '<div class="ex' + (doneEx && !useSets ? ' done' : '') + '" data-ex="' + esc(ex.id) + '">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="ex-name">' + esc(ex.name) + '</div>' +
+        (sub ? '<div class="ex-sub">' + sub + '</div>' : '') +
+        body +
+      '</div>' +
+      '<button class="done-key' + (doneEx ? ' on' : '') + '" data-done="' + esc(ex.id) + '" role="switch" aria-checked="' + (doneEx ? 'true' : 'false') + '" aria-label="完成"><span class="track"><span class="knob"></span></span></button>' +
+    '</div>';
+  }).join('');
+  list.innerHTML = rows || '<div class="empty">这个大项还没有动作<br>去设置里添加</div>';
+
+  const doneN = doneCountOf(p, ds);
+  renderExMeta(p, ds, totalSets);
+}
+
+/** 动作区的计数 / 打卡按钮 / 提示文案。
+    单独抽出来，是为了「点完成键」时只刷新这几处、不重建整个列表 ——
+    重建会让开关滑块一出生就是终态，播不出从左拨到右的过渡动画。 */
+function renderExMeta(p, ds, totalSets){
+  const useSets = !!DB.settings.trackSets;
+  if (typeof totalSets !== 'number'){
+    const daySets = DB.sets[ds] || {};
+    totalSets = 0;
+    p.exercises.forEach(function(ex){ totalSets += Math.max(0, Math.min(10, Number(daySets[ex.id]) || 0)); });
+  }
+  const doneN = doneCountOf(p, ds);
+  $('exNote').textContent = p.exercises.length ? (doneN + '/' + p.exercises.length + ' 完成' + (useSets ? ' · 共 ' + totalSets + ' 组' : '')) : '';
+
+  const already = hasLogged(p.id, ds);
+  const btn = $('btnFinish');
+  const allDone = p.exercises.length > 0 && doneN === p.exercises.length;
+  btn.disabled = already;
+  btn.textContent = already ? '今天已记录「' + p.name + '」' : (allDone ? '完成今日训练（动作已全部完成）' : '完成今日训练');
+  btn.className = 'btn block' + (already ? ' ghost' : (allDone ? ' blue' : ''));
+  const hint = $('finishHint');
+  if (already){
+    const rest = DB.parts.filter(function(x){ return (DB.cycle.parts||[]).indexOf(x.id) < 0; });
+    const nxt = rest[0] ? partOf(rest[0].id) : null;
+    hint.innerHTML = nxt ? '已打卡 · 下一个建议练 <b>' + esc(nxt.name) + '</b>，点上面的标题切换' : '本位练完，本轮已闭环';
+  } else {
+    hint.textContent = '练完点一下打卡 · 点最上方标题可换部位';
+  }
+}
+
+function renderTimer(){
+  const t = ui.timer;
+  const disp = $('tDisp');
+  if (!t.running && !disp.classList.contains('done')) disp.textContent = fmtSec(t.orig);
+  disp.classList.toggle('run', t.running);
+  const st = $('tState');
+  if (t.running) st.textContent = '倒计时中';
+  else if (!disp.classList.contains('done')) st.textContent = '待机 · ' + fmtSec(t.orig);
+  $('tGo').textContent = t.running ? '暂停' : '开始';
+  $('timerNote').textContent = '设定 ' + fmtSec(t.orig);
+}
+
+function renderNote(){
+  const el = $('note');
+  if (document.activeElement !== el) el.value = DB.note || '';
+}
+
+/* ---------------- 渲染：右侧面板 ---------------- */
+function renderDrawer(){
+  const body = $('drawerBody');
+  if (!DB.parts.length){
+    body.innerHTML = '<div class="empty">还没有训练大项<br><br>点右上角齿轮进设置，<br>在「训练项目」里添加或导入计划</div>';
+    return;
+  }
+  const ds = today();
+  body.innerHTML = DB.parts.map(function(p){
+    const inCycle = (DB.cycle.parts || []).indexOf(p.id) >= 0;
+    const cur = p.id === ui.sel;
+    const cls = 'plist-item' + (inCycle ? ' done' : '') + (cur ? ' cur' : '');
+    // 右侧不再写「已练/未练」小字：粗黑 = 未练，灰细 = 已练，够了
+    return '<button class="' + cls + '" data-pick="' + esc(p.id) + '">' +
+      '<span class="nm">' + esc(p.name) + '</span>' +
+    '</button>';
+  }).join('');
+}
+function openDrawer(){
+  renderDrawer();
+  const d = $('drawer');
+  d.className = 'drawer mode-' + (ui.titleForm || 'drawer');
+  d.classList.add('on');
+  d.setAttribute('aria-hidden', 'false');
+  hz(12);
+}
+function closeDrawer(){
+  $('drawer').classList.remove('on');
+  $('drawer').setAttribute('aria-hidden', 'true');
+}
+
+/* ---------------- 渲染：日志 ---------------- */
+function renderLog(){
+  const now = new Date();
+  if (!ui.month) ui.month = { y: now.getFullYear(), m: now.getMonth() };
+  const y = ui.month.y, m = ui.month.m;
+  $('logMonth').textContent = fmtMonth(y, m);
+  const prefix = y + '-' + String(m+1).padStart(2,'0');
+  const monthLogs = DB.logs.filter(function(l){ return l.date.indexOf(prefix) === 0; });
+  const days = {};
+  monthLogs.forEach(function(l){ (days[l.date] = days[l.date] || []).push(l.partId); });
+  const dayCount = Object.keys(days).length;
+  const done0 = cycleDoneCount();
+  $('logStats').innerHTML =
+    '<div class="stat"><div class="v">' + monthLogs.length + '<small>次</small></div><div class="k">本月训练次数</div></div>' +
+    '<div class="stat"><div class="v">' + dayCount + '<small>天</small></div><div class="k">本月去了几天</div></div>' +
+    '<div class="stat"><div class="v">' + done0 + '<small>/' + cycleLen() + '</small></div><div class="k">本轮进度</div></div>';
+
+  const startDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const tds = today();
+  const cells = [];
+  DOW.forEach(function(w){ cells.push('<div class="cal-w">' + w + '</div>'); });
+  for (let i = 0; i < startDow; i++) cells.push('<div class="cal-cell pad"></div>');
+  for (let d = 1; d <= daysInMonth; d++){
+    const ds = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const parts = days[ds] || [];
+    const cls = ['cal-cell'];
+    if (parts.length) cls.push('hit');
+    if (ds === tds) cls.push('today');
+    let inner = '<span>' + d + '</span>';
+    if (parts.length){
+      const p0 = partOf(parts[0]);
+      inner += '<span class="g">' + esc(p0 ? p0.name.slice(0,1) : '·') + '</span>';
+      if (parts.length > 1) inner += '<span class="plus">+' + (parts.length-1) + '</span>';
+    }
+    cells.push('<button class="' + cls.join(' ') + '" data-day="' + ds + '">' + inner + '</button>');
+  }
+  $('calGrid').innerHTML = cells.join('');
+
+  const dd = $('dayDetail');
+  if (ui.selDay){
+    const parts = days[ui.selDay] || [];
+    dd.innerHTML = parts.length
+      ? '<b>' + esc(ui.selDay) + '</b> 练了：' + parts.map(function(id){ const p = partOf(id); return esc(p ? p.name : '（已删除）'); }).join('、')
+      : '<b>' + esc(ui.selDay) + '</b> 没有训练记录';
+  } else dd.innerHTML = '';
+
+  const btn = $('btnEndCycle');
+  btn.disabled = done0 === 0;
+  btn.textContent = done0 === 0 ? '本轮还没记录' : '提前结束本轮循环（当前 ' + done0 + '/' + cycleLen() + '）';
+  $('todayLabel').textContent = (now.getMonth()+1) + '月' + now.getDate() + '日 周' + DOW[now.getDay()];
+}
+
+/* ---------------- 计时器逻辑 ---------------- */
+function setDuration(sec){
+  sec = Math.max(5, Math.min(3600, Math.round(sec)));
+  const t = ui.timer;
+  stopTimerTicking();
+  t.orig = sec; t.left = sec; t.running = false; t.endAt = 0;
+  DB.settings.timerDefault = sec;
+  const d = $('tDisp'); d.classList.remove('done', 'run'); d.textContent = fmtSec(sec);
+  save();
+  renderTimer();
+}
+function stopTimerTicking(){
+  if (ui.timer.tick){ clearInterval(ui.timer.tick); ui.timer.tick = 0; }
+}
+function tickOnce(){
+  const t = ui.timer;
+  if (!t.running) return;
+  const left = (t.endAt - Date.now()) / 1000;
+  t.left = Math.max(0, left);
+  const d = $('tDisp');
+  if (d) d.textContent = fmtSec(Math.ceil(t.left));
+  if (left <= 0) finishTimer();
+}
+function startTimer(){
+  const okAudio = audioUnlock();
+  const t = ui.timer;
+  t.endAt = Date.now() + t.left * 1000;
+  t.running = true;
+  holdAudio(true);
+  const scheduled = scheduleBeep(t.endAt);   // 提前排进音频线程
+  if (!scheduled) { /* 音频没解锁，靠下面 setTimeout 兜底 */ }
+  acquireWakeLock();
+  stopTimerTicking();
+  t.tick = setInterval(tickOnce, 250);       // setInterval：后台也能跑（rAF 会被冻结）
+  renderTimer();
+  hz(15);
+}
+function pauseTimer(){
+  const t = ui.timer;
+  if (!t.running) return;
+  t.left = Math.max(0, (t.endAt - Date.now()) / 1000);
+  t.running = false;
+  stopTimerTicking();
+  releaseWakeLock();
+  holdAudio(false);
+  renderTimer();
+}
+function finishTimer(){
+  const t = ui.timer;
+  t.running = false;
+  stopTimerTicking();
+  releaseWakeLock();
+  const d = $('tDisp');
+  d.textContent = '0:00';
+  d.classList.remove('run');
+  d.classList.add('done');
+  $('tState').textContent = '时间到！';
+  renderTimer();                 // 按钮从「暂停」回到「开始」（原来漏了这句，会一直卡在暂停）
+  vibratePattern();
+  fireNotify();
+  // 若音频线程那条已排出，这里不重复响；只有没排上时才补一次
+  if (!AC || AC.state !== 'running'){ /* 已经在 scheduleBeep 里排过 */ }
+  setTimeout(function(){
+    t.left = t.orig;
+    d.classList.remove('done');
+    d.textContent = fmtSec(t.orig);
+    renderTimer();
+    $('tState').textContent = '已复位 · ' + fmtSec(t.orig);
+    holdAudio(false);            // 等两轮铃声播完再放开音频会话
+  }, 2600);
+}
+
+/* ---------------- 事件：首页 ---------------- */
+function bindHome(){
+  on('focusTitle', 'click', function(){ openDrawer(); });
+  on('drawerBg', 'click', closeDrawer);
+  on('drawerClose', 'click', closeDrawer);
+  on('drawerBody', 'click', function(e){
+    const b = e.target.closest('[data-pick]');
+    if (!b) return;
+    ui.sel = b.dataset.pick;
+    closeDrawer();
+    renderFocus(); renderExercises();
+    const p = partOf(ui.sel);
+    if (p) toast('今天练「' + p.name + '」');
+  });
+
+  on('exList', 'click', function(e){
+    const dk = e.target.closest('[data-done]');
+    if (dk){
+      const ds = today();
+      const nowDone = toggleExDone(ds, dk.dataset.done);
+      hz(nowDone ? 18 : 10);
+      // 就地切换，不重建列表：重建的话新节点一出生就带 .on，
+      // 滑块直接跳到位，播不出「从左拨到右 / 从右拨到左」的过渡
+      dk.classList.toggle('on', nowDone);
+      dk.setAttribute('aria-checked', nowDone ? 'true' : 'false');
+      const rowEl = dk.closest('.ex');
+      if (rowEl) rowEl.classList.toggle('done', nowDone && !DB.settings.trackSets);
+      const cur = partOf(ui.sel);
+      if (cur) renderExMeta(cur, ds);
+      return;
+    }
+    const add = e.target.closest('[data-add]');
+    if (add){
+      const ds = today();
+      DB.sets[ds] = DB.sets[ds] || {};
+      DB.sets[ds][add.dataset.add] = Math.min(10, (Number(DB.sets[ds][add.dataset.add]) || 0) + 1);
+      save(); renderExercises(); return;
+    }
+    const dot = e.target.closest('.dot[data-i]');
+    if (dot){
+      const ds = today();
+      const id = dot.dataset.ex, i = Number(dot.dataset.i);
+      DB.sets[ds] = DB.sets[ds] || {};
+      const cur = Number(DB.sets[ds][id]) || 0;
+      DB.sets[ds][id] = (cur === i) ? i - 1 : i;
+      save(); renderExercises();
+    }
+  });
+
+  on('btnFinish', 'click', function(){
+    if (!ui.sel) return;
+    const p = partOf(ui.sel);
+    const ds = today();
+    if (hasLogged(ui.sel, ds)){ toast('今天已经记录过「' + p.name + '」了'); return; }
+    addLog(ui.sel, ds);
+    const len = cycleLen();
+    const cycleEnd = DB.parts.length && cycleDoneCount() >= len;
+    if (cycleEnd) closeCycle(true);
+    renderHome();
+    toast(cycleEnd ? ('「' + p.name + '」已记录 · 本轮完成！已开新一轮') : ('已记录「' + p.name + '」· 本轮 ' + cycleDoneCount() + '/' + len));
+  });
+
+  on('btnEndCycle', 'click', function(){
+    const done = cycleDoneCount(), len = cycleLen();
+    if (!done){ toast('本轮还没有记录'); return; }
+    if (!confirm('提前结束本轮循环？\n\n当前进度 ' + done + ' / ' + len + '，会记作「已结束」并开启新一轮。')) return;
+    closeCycle(false);
+    ui.sel = nextPartId(null) || ui.sel;
+    renderHome();
+    toast('已结束本轮，开启新一轮');
+  });
+
+  on('tGo', 'click', function(){
+    if (ui.timer.running) pauseTimer(); else startTimer();
+  });
+  on('tReset', 'click', function(){
+    const t = ui.timer;
+    t.running = false; stopTimerTicking(); releaseWakeLock(); holdAudio(false);
+    t.left = t.orig;
+    const d = $('tDisp'); d.classList.remove('done', 'run');
+    d.textContent = fmtSec(t.orig);
+    $('tState').textContent = '已重置 · ' + fmtSec(t.orig);
+    renderTimer();
+  });
+
+  let noteTimer = 0;
+  on('note', 'input', function(){
+    DB.note = $('note').value;
+    $('noteSaved').textContent = '保存中…';
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){
+      saveNow();
+      $('noteSaved').textContent = '已保存 ' + new Date().toTimeString().slice(0,5);
+    }, 400);
+  });
+
+  on('logPrev', 'click', function(){
+    ui.month.m--; if (ui.month.m < 0){ ui.month.m = 11; ui.month.y--; }
+    ui.selDay = null; renderLog();
+  });
+  on('logNext', 'click', function(){
+    ui.month.m++; if (ui.month.m > 11){ ui.month.m = 0; ui.month.y++; }
+    ui.selDay = null; renderLog();
+  });
+  on('calGrid', 'click', function(e){
+    const b = e.target.closest('[data-day]'); if (!b) return;
+    ui.selDay = ui.selDay === b.dataset.day ? null : b.dataset.day;
+    renderLog();
+  });
+
+  on('btnSettings', 'click', showSettings);
+}
+
+/* ---------------- 设置页 ---------------- */
+function showSettings(){
+  $('homeView').classList.add('hidden');
+  $('settingsView').classList.remove('hidden');
+  window.scrollTo(0, 0);
+  renderSettings();
+}
+function showHome(){
+  $('settingsView').classList.add('hidden');
+  $('homeView').classList.remove('hidden');
+  window.scrollTo(0, 0);
+  saveNow();
+  renderHome();
+}
+
+function renderSettings(){
+  $('editToday').textContent = today() + ' 周' + DOW[new Date().getDay()];
+  const editOn = ui.editMode;
+  const em = $('btnEditMode');
+  em.textContent = editOn ? '编辑中' : '编辑';
+  em.className = 'btn sm ' + (editOn ? 'on' : 'ghost');
+  $('addPartRow').classList.toggle('hidden', !editOn);
+
+  const card = $('partsCard');
+  if (!DB.parts.length){
+    card.innerHTML = '<div class="empty">还没有训练大项<br><br>' + (editOn ? '用下面的输入框添加，或从「数据」里导入训练计划' : '点左上角「编辑」开始添加') + '</div>';
+  } else {
+    card.innerHTML = DB.parts.map(function(p, pi){
+      const open = !!ui.openAcc[p.id];
+      const rows = p.exercises.map(function(ex, ei){
+        return '<div class="ex-edit" data-pi="' + pi + '" data-ei="' + ei + '" data-ex="' + esc(ex.id) + '">' +
+          (editOn ? '<div class="grip" title="按住拖动排序"><svg viewBox="0 0 24 24"><path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"/></svg></div>' : '') +
+          '<div class="nm">' + esc(ex.name) + '</div>' +
+          (editOn ? '<button class="mini" data-act="ren" data-pi="' + pi + '" data-ei="' + ei + '">修改</button>' +
+                    '<button class="mini del" data-act="del" data-pi="' + pi + '" data-ei="' + ei + '">×</button>' : '') +
+        '</div>';
+      }).join('');
+      return '<div class="acc' + (open ? ' open' : '') + '" data-acc="' + esc(p.id) + '">' +
+        '<button class="acc-head" data-toggle="' + esc(p.id) + '">' +
+          '<svg class="arw" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>' +
+          '<span class="nm">' + esc(p.name) + '</span>' +
+          '<span class="cnt">' + p.exercises.length + ' 个动作</span>' +
+          (editOn ? '<span class="mini" data-act="renpart" data-pi="' + pi + '" style="margin-left:4px">修改</span>' +
+                    '<span class="mini del" data-act="delpart" data-pi="' + pi + '">×</span>' : '') +
+        '</button>' +
+        '<div class="acc-body">' + (rows || '<div class="empty" style="padding:16px">还没有动作</div>') +
+          (editOn ? '<div class="row-inline"><input class="txt" data-new-ex="' + pi + '" placeholder="给「' + esc(p.name) + '」加动作" maxlength="24"><button class="mini" data-act="addex" data-pi="' + pi + '">添加</button></div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  const durs = DB.settings.timerDurations || [];
+  const curDur = Math.round(ui.timer.orig);
+  $('durNow').textContent = fmtSec(curDur);
+  $('durChips').innerHTML = durs.length
+    ? durs.map(function(x){
+        return '<button class="btn sm ' + (Math.round(x) === curDur ? 'on' : 'ghost') +
+               '" data-dur="' + x + '">' + fmtSec(x) + '</button>';
+      }).join('')
+    : '<span class="dur-cap" style="margin:0">还没有档位，在下面加一个</span>';
+  $('btnTrackSets').textContent = DB.settings.trackSets ? '开启' : '关闭';
+  $('btnTrackSets').className = 'btn sm ' + (DB.settings.trackSets ? 'on' : 'ghost');
+  $('btnHaptic').textContent = DB.settings.haptic ? '开启' : '关闭';
+  $('btnHaptic').className = 'btn sm ' + (DB.settings.haptic ? 'on' : 'ghost');
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  $('btnNotify').textContent = perm === 'granted' ? '已开启' : (perm === 'denied' ? '被拒绝' : (perm === 'unsupported' ? '不支持' : '开启'));
+  $('btnNotify').className = 'btn sm ' + (perm === 'granted' ? 'on' : (perm === 'denied' ? 'danger' : 'ghost'));
+
+}
+
+function bindSettings(){
+  on('btnDone', 'click', showHome);
+  on('btnEditMode', 'click', function(){
+    ui.editMode = !ui.editMode;
+    hz(12);
+    renderSettings();
+  });
+
+  on('partsCard', 'click', function(e){
+    const act = e.target.closest('[data-act]');
+    if (act){
+      const a = act.dataset.act, pi = Number(act.dataset.pi), ei = Number(act.dataset.ei);
+      const p = DB.parts[pi];
+      if (!p) return;
+      if (a === 'delpart'){
+        if (!confirm('删除大项「' + p.name + '」？里面 ' + p.exercises.length + ' 个动作一起删掉。')) return;
+        DB.parts.splice(pi, 1);
+        DB.cycle.parts = (DB.cycle.parts || []).filter(function(id){ return id !== p.id; });
+        if (ui.sel === p.id) ui.sel = DB.parts[0] ? DB.parts[0].id : null;
+        saveNow(); renderSettings(); toast('已删除「' + p.name + '」');
+        return;
+      }
+      if (a === 'renpart'){
+        const nv = prompt('大项名称', p.name);
+        if (!nv || !nv.trim()) return;
+        p.name = nv.trim().slice(0, 12);
+        saveNow(); renderSettings(); return;
+      }
+      if (a === 'addex'){
+        const inp = $('partsCard').querySelector('[data-new-ex="' + pi + '"]');
+        if (!inp || !inp.value.trim()){ toast('先输入动作名称'); return; }
+        p.exercises.push(mkEx(inp.value.trim().slice(0, 24)));
+        saveNow(); renderSettings(); return;
+      }
+      const ex = p.exercises[ei];
+      if (!ex) return;
+      if (a === 'del'){
+        if (!confirm('删除动作「' + ex.name + '」？')) return;
+        p.exercises.splice(ei, 1);
+        saveNow(); renderSettings(); return;
+      }
+      if (a === 'ren'){
+        const nv = prompt('动作名称', ex.name);
+        if (!nv || !nv.trim()) return;
+        ex.name = nv.trim().slice(0, 24);
+        saveNow(); renderSettings(); return;
+      }
+      return;
+    }
+    const t = e.target.closest('[data-toggle]');
+    if (t){
+      const id = t.dataset.toggle;
+      ui.openAcc[id] = !ui.openAcc[id];
+      const box = $('partsCard').querySelector('[data-acc="' + id + '"]');
+      if (box) box.classList.toggle('open', !!ui.openAcc[id]);
+    }
+  });
+
+  bindDragReorder();
+
+  on('btnAddPart', 'click', function(){
+    const inp = $('newPart');
+    const v = (inp.value || '').trim();
+    if (!v){ toast('先输入大项名称'); return; }
+    DB.parts.push({ id: mkId('p'), name: v.slice(0,12), exercises: [] });
+    inp.value = '';
+    saveNow(); renderSettings();
+    toast('已添加「' + v + '」· 周期长度现在是 ' + cycleLen() + ' 天');
+  });
+  on('newPart', 'keydown', function(e){ if (e.key === 'Enter') $('btnAddPart').click(); });
+
+  on('btnAddDur', 'click', function(){
+    const inp = $('newDur');
+    const v = parseInt((inp.value || '').replace(/[^\d]/g, ''), 10);
+    if (!v || v < 5 || v > 3600){ toast('请输入 5 — 3600 之间的秒数'); return; }
+    DB.settings.timerDurations = DB.settings.timerDurations || [];
+    if (DB.settings.timerDurations.some(function(x){ return Math.round(x) === v; })){ toast(fmtSec(v) + ' 已存在'); return; }
+    DB.settings.timerDurations.push(v);
+    DB.settings.timerDurations.sort(function(a,b){ return a-b; });
+    inp.value = '';
+    saveNow(); renderSettings();
+    toast('已添加档位 ' + fmtSec(v));
+  });
+  on('newDur', 'keydown', function(e){ if (e.key === 'Enter') $('btnAddDur').click(); });
+
+  /* 调时长：设置页是唯一入口（计时卡片上只剩开始 / 重置） */
+  const setDur = function(sec){
+    setDuration(sec);
+    renderSettings();
+    hz(10);
+    toast('计时设为 ' + fmtSec(ui.timer.orig));
+  };
+  on('btnDurMinus', 'click', function(){ setDur(ui.timer.orig - 15); });
+  on('btnDurPlus', 'click', function(){ setDur(ui.timer.orig + 15); });
+
+  /* 档位：点一下切过去；按住 500ms 删除（免得误触） */
+  let durHold = 0, durLong = false;
+  on('durChips', 'pointerdown', function(e){
+    const b = e.target.closest('[data-dur]');
+    if (!b) return;
+    durLong = false;
+    durHold = setTimeout(function(){
+      durLong = true;
+      const v = Math.round(Number(b.dataset.dur));
+      DB.settings.timerDurations = (DB.settings.timerDurations || []).filter(function(x){ return Math.round(x) !== v; });
+      saveNow(); renderSettings(); hz(25);
+      toast('已删除档位 ' + fmtSec(v));
+    }, 500);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(ev){
+    on('durChips', ev, function(e){
+      clearTimeout(durHold);
+      if (durLong) return;
+      const b = e.target.closest('[data-dur]');
+      if (!b) return;
+      setDur(Number(b.dataset.dur));
+    });
+  });
+
+  on('btnTrackSets', 'click', function(){
+    DB.settings.trackSets = !DB.settings.trackSets;
+    hz(12); saveNow(); renderSettings();
+  });
+  on('btnHaptic', 'click', function(){
+    DB.settings.haptic = !DB.settings.haptic;
+    saveNow();
+    if (DB.settings.haptic) hz(25);
+    renderSettings();
+  });
+  on('btnNotify', 'click', async function(){
+    const r = await requestNotify();
+    hz(12);
+    renderSettings();
+    if (r === 'granted') toast('已开启，倒计时结束会弹通知');
+    else if (r === 'denied') toast('浏览器已拒绝通知权限，需在浏览器设置里改');
+    else if (r === 'unsupported') toast('这个浏览器不支持通知');
+  });
+
+  on('btnExportPlan', 'click', function(){
+    const data = { type: 'fitness-plan', version: 2, exportedAt: new Date().toISOString(), parts: DB.parts };
+    downloadJson(data, '训练计划-' + today() + '.json');
+  });
+  on('btnImportPlan', 'click', function(){ $('filePlan').click(); });
+  on('filePlan', 'change', function(e){
+    readJsonFile(e, function(d){
+      const parts = Array.isArray(d) ? d : (d && Array.isArray(d.parts) ? d.parts : null);
+      if (!parts) throw new Error('这个文件里没有训练计划（缺 parts 字段）');
+      if (!confirm('导入训练计划？\n\n将替换现有的 ' + DB.parts.length + ' 个大项，共 ' + parts.length + ' 个新大项。\n打卡记录和便签不会动。')) return;
+      const n = applyPlan(parts);
+      renderSettings();
+      toast('已导入 ' + n + ' 个大项');
+    });
+  });
+
+  on('btnPasteToggle', 'click', function(){
+    const box = $('pasteBox');
+    box.classList.toggle('hidden');
+    hz(10);
+    if (!box.classList.contains('hidden')){ try { $('pasteArea').focus(); } catch(err){} }
+  });
+  on('btnPasteGo', 'click', function(){
+    const raw = ($('pasteArea').value || '').trim();
+    if (!raw){ toast('先把内容粘进去'); return; }
+    try {
+      const parts = parsePlan(raw);
+      if (!confirm('导入训练计划？\n\n将替换现有的 ' + DB.parts.length + ' 个大项，共 ' + parts.length + ' 个新大项。\n打卡记录和便签不会动。')) return;
+      const n = applyPlan(parts);
+      $('pasteArea').value = '';
+      $('pasteBox').classList.add('hidden');
+      renderSettings();
+      toast('已导入 ' + n + ' 个大项');
+    } catch(err){
+      toast('解析失败：' + (err && err.message ? err.message : '不是合法 JSON'));
+    }
+  });
+
+  on('btnExportAll', 'click', function(){ downloadJson(DB, '训练记录-完整备份-' + today() + '.json'); });
+  on('btnImportAll', 'click', function(){ $('fileAll').click(); });
+  on('fileAll', 'change', function(e){
+    readJsonFile(e, function(d){
+      if (!d || !Array.isArray(d.parts)) throw new Error('不是有效的完整备份');
+      if (!confirm('导入完整备份会覆盖当前全部数据（现有 ' + DB.logs.length + ' 条记录）。继续？')) return;
+      const b = blankData();
+      DB = Object.assign(b, d);
+      DB.settings = Object.assign(b.settings, d.settings || {});
+      DB.cycle = Object.assign(b.cycle, d.cycle || {});
+      DB.done = d.done && typeof d.done === 'object' ? d.done : {};
+      saveNow();
+      initSelection(); ui.openAcc = {};
+      renderSettings();
+      toast('导入成功');
+    });
+  });
+
+  on('btnReset', 'click', function(){
+    if (!confirm('清空全部数据（大项、记录、便签）？不可撤销。')) return;
+    if (!confirm('真的确定？建议先导出一份完整备份。')) return;
+    DB = blankData();
+    saveNow();
+    ui.sel = null; ui.month = null; ui.selDay = null; ui.openAcc = {}; ui.editMode = false;
+    renderSettings();
+    toast('已清空');
+  });
+}
+
+/** 统一的「套用训练计划」逻辑：文件导入与粘贴导入共用 */
+function applyPlan(parts){
+  DB.parts = parts.map(function(p){
+    return {
+      id: (p && p.id) || mkId('p'),
+      name: String((p && p.name) || '未命名').slice(0, 12),
+      exercises: ((p && p.exercises) || []).map(function(x){
+        return { id: (x && x.id) || mkId('ex'), name: String((x && x.name) || x || '未命名').slice(0, 24) };
+      })
+    };
+  });
+  saveNow();
+  ui.sel = DB.parts[0] ? DB.parts[0].id : null;
+  ui.openAcc = {};
+  renderHome();        // 首页也一起刷新，避免回到首页还是旧样子
+  return DB.parts.length;
+}
+function parsePlan(raw){
+  const d = JSON.parse(raw);
+  const parts = Array.isArray(d) ? d : (d && Array.isArray(d.parts) ? d.parts : null);
+  if (!parts) throw new Error('这里没有训练计划（缺 parts 字段）');
+  return parts;
+}
+
+function downloadJson(obj, filename){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+  toast('已导出：' + filename);
+}
+function readJsonFile(e, handler){
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = function(){
+    try {
+      handler(JSON.parse(String(fr.result)));
+    } catch(err){
+      toast('读取失败：' + (err && err.message ? err.message : '文件无法解析'));
+    }
+    e.target.value = '';
+  };
+  fr.readAsText(f);
+}
+
+/* ---------------- 按住拖动排序 ---------------- */
+function bindDragReorder(){
+  const card = $('partsCard');
+  if (!card || card.__dragBound) return;
+  card.__dragBound = true;
+
+  let drag = null;
+  card.addEventListener('pointerdown', function(e){
+    const grip = e.target.closest('.grip');
+    if (!grip) return;
+    const row = grip.closest('.ex-edit');
+    if (!row) return;
+    const body = row.closest('.acc-body');
+    if (!body) return;
+    e.preventDefault();
+
+    const startY = e.clientY;
+    let armed = false;
+    const holdTimer = setTimeout(function(){
+      armed = true;
+      row.classList.add('dragging');
+      hz(22);
+      try { grip.setPointerCapture(e.pointerId); } catch(err){}
+    }, 300);
+
+    const cleanup = function(){
+      clearTimeout(holdTimer);
+      if (row) row.classList.remove('dragging');
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+    const move = function(me){
+      if (!armed){
+        if (Math.abs(me.clientY - startY) > 10) cleanup();
+        return;
+      }
+      me.preventDefault();
+      const rows = Array.prototype.slice.call(body.querySelectorAll('.ex-edit'));
+      const others = rows.filter(function(r){ return r !== row; });
+      let target = null;
+      for (let i = 0; i < others.length; i++){
+        const b = others[i].getBoundingClientRect();
+        if (me.clientY < b.top + b.height / 2){ target = others[i]; break; }
+      }
+      if (target) body.insertBefore(row, target);
+      else if (others.length) body.insertBefore(row, others[others.length - 1].nextSibling);
+    };
+    const up = function(){
+      const wasArmed = armed;
+      cleanup();
+      if (!wasArmed) return;
+      // 按 DOM 顺序回写数据
+      const acc = body.closest('[data-acc]');
+      const pid = acc ? acc.dataset.acc : null;
+      const p = partOf(pid);
+      if (!p) return;
+      const order = Array.prototype.slice.call(body.querySelectorAll('.ex-edit')).map(function(r){ return r.dataset.ex; });
+      p.exercises.sort(function(a, b){ return order.indexOf(a.id) - order.indexOf(b.id); });
+      saveNow();
+      hz(14);
+      toast('顺序已保存');
+    };
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------------- 启动 ---------------- */
+function boot(){
+  DB = load();
+  if (DB.settings.timerDefault) ui.timer.orig = DB.settings.timerDefault;
+  ui.timer.left = ui.timer.orig;
+  // 首帧就把面板形态类挂上。否则第一次打开时元素只有 .drawer，
+  // 计算值落回基础样式的 translateX(102%)（屏幕右侧），首开就变成「从右边滑进来」，
+  // 而第二次以后形态类已就位，才是设计的浮层动画 —— 用户看到的「前后不一致」就是这个。
+  $('drawer').className = 'drawer mode-' + (ui.titleForm || 'drawer');
+  initSelection();
+  bindHome();
+  bindSettings();
+  bindGlobalHaptic();
+  renderHome();
+  window.addEventListener('beforeunload', saveNow);
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden) saveNow();
+    else if (ui.timer.running) tickOnce();   // 回到前台立刻校准
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  // SW 只在安全上下文可用：https 或 localhost（后者也算安全上下文，本地验证要用到）
+  var secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (secure) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    });
+  }
+}
+</script>
+</body>
+</html>

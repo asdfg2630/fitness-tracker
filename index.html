@@ -786,8 +786,12 @@ function holdAudio(on_){
     所以这里不传 input —— 少一个出错面。
     拆成 shortcutUrl / openShortcut 两层，是为了测试能拦住真实跳转直接断言。 */
 const SHORTCUT_NAME = '组间歇计时';
+/** 跑完自动跳回本页的「主屏幕网页 App」。域名写死：换域名必须同步改这一行，
+    否则回跳会落到 Safari —— 那是另一个存储沙箱，看不到这里的训练数据。 */
+const WEBAPP_RETURN = 'webapp://asdfg2630.github.io/fitness-tracker/';
 function shortcutUrl(){
-  return 'shortcuts://run-shortcut?name=' + encodeURIComponent(SHORTCUT_NAME);
+  return 'shortcuts://x-callback-url/run-shortcut?name=' + encodeURIComponent(SHORTCUT_NAME)
+       + '&x-success=' + encodeURIComponent(WEBAPP_RETURN);
 }
 let openShortcut = function(url){ try { location.href = url; return true; } catch(e){ return false; } };
 /** 桌面浏览器没有「快捷指令」，所以只在 iOS 上才把提醒交出去 */

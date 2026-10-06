@@ -478,7 +478,7 @@ body.theme-frost .cycle-row{margin-top:2px}
       <div class="legend">点任意一天看细节</div>
       <div class="day-detail" id="dayDetail"></div>
       <div style="padding:0 20px 18px">
-        <button class="btn ghost block sm" id="btnEndCycle">提前结束本轮循环</button>
+        <button class="btn ghost block sm" id="btnEndCycle">重置本轮循环</button>
       </div>
     </section>
   </main>
@@ -701,7 +701,9 @@ function blankData(){
       timerDefault: 120,
       timerDurations: [60, 90, 105, 120, 150, 180],
       trackSets: false,
-      haptic: true
+      haptic: true,
+      selDate: '',        // 手动选定的部位归属哪天（'' = 没有）
+      selPart: null       // 手动选定的部位 id
     },
     cycle: { start: today(), parts: [] },
     history: [],
@@ -862,25 +864,32 @@ function partOf(id){
 }
 function hasLogged(partId, ds){ return DB.logs.some(function(l){ return l.date === ds && l.partId === partId; }); }
 function cycleLen(){ return Math.max(1, DB.parts.length); }
-function cycleDoneCount(){ return (DB.cycle.parts || []).length; }
-function nextPartId(afterId){
-  if (!DB.parts.length) return null;
-  if (!afterId){
-    const last = DB.logs[DB.logs.length - 1];
-    if (last){
-      const i = DB.parts.findIndex(function(p){ return p.id === last.partId; });
-      if (i >= 0) return DB.parts[(i+1) % DB.parts.length].id;
-    }
-    return DB.parts[0].id;
-  }
-  const i = DB.parts.findIndex(function(p){ return p.id === afterId; });
-  if (i < 0) return DB.parts[0].id;
-  return DB.parts[(i+1) % DB.parts.length].id;
+/** 只数「还在大项列表里」的 —— 删掉某个大项后 cycle.parts 会留着它的旧 id，
+    不滤掉的话本轮进度虚高，甚至误判「本轮已完成」而自动开新循环。 */
+function cycleDoneCount(){
+  const ids = DB.parts.map(function(p){ return p.id; });
+  return (DB.cycle.parts || []).filter(function(x){ return ids.indexOf(x) >= 0; }).length;
 }
+/** 按用户自己排的大项顺序，找第一个「本轮还没练过」的；全练完就回第一个。
+    这是「打开网页时自动选中哪个部位」的唯一推荐来源 —— 它认得用户排的顺序，
+    也认得本轮已经练过哪些，所以不会像旧逻辑那样只盯着「最后一条记录的下一个」。 */
+function firstUnfinishedPartId(){
+  if (!DB.parts.length) return null;
+  const done = DB.cycle.parts || [];
+  for (let i = 0; i < DB.parts.length; i++){
+    if (done.indexOf(DB.parts[i].id) < 0) return DB.parts[i].id;
+  }
+  return DB.parts[0].id;
+}
+/** 今天该练哪个。优先级：①今天手动选过 → 尊重它 ②今天已打卡 → 停在那个部位 ③本轮第一个没练过的。
+    ①不能少：主屏幕网页 App 切后台被系统回收后再回来是冷启动，没有它手选会被自动推荐顶掉
+    —— 就是「切个应用回消息再切回来又变回去」。 */
 function initSelection(){
   const t = today();
+  if (DB.settings.selDate === t && partOf(DB.settings.selPart)){ ui.sel = DB.settings.selPart; return; }
   const tl = DB.logs.filter(function(l){ return l.date === t; });
-  ui.sel = tl.length ? tl[tl.length - 1].partId : nextPartId(null);
+  if (tl.length){ ui.sel = tl[tl.length - 1].partId; return; }
+  ui.sel = firstUnfinishedPartId();
 }
 function addLog(partId, ds){
   if (hasLogged(partId, ds)) return false;
@@ -1129,7 +1138,7 @@ function renderLog(){
 
   const btn = $('btnEndCycle');
   btn.disabled = done0 === 0;
-  btn.textContent = done0 === 0 ? '本轮还没记录' : '提前结束本轮循环（当前 ' + done0 + '/' + cycleLen() + '）';
+  btn.textContent = done0 === 0 ? '本轮还没记录' : '重置本轮循环（当前 ' + done0 + '/' + cycleLen() + '）';
   $('todayLabel').textContent = (now.getMonth()+1) + '月' + now.getDate() + '日 周' + DOW[now.getDay()];
 }
 
@@ -1233,6 +1242,8 @@ function bindHome(){
     const b = e.target.closest('[data-pick]');
     if (!b) return;
     ui.sel = b.dataset.pick;
+    DB.settings.selDate = today(); DB.settings.selPart = ui.sel;   // 记住手选，冷启动别被自动推荐顶回去
+    save();
     closeDrawer();
     renderFocus(); renderExercises();
     const p = partOf(ui.sel);
@@ -1289,11 +1300,13 @@ function bindHome(){
   on('btnEndCycle', 'click', function(){
     const done = cycleDoneCount(), len = cycleLen();
     if (!done){ toast('本轮还没有记录'); return; }
-    if (!confirm('提前结束本轮循环？\n\n当前进度 ' + done + ' / ' + len + '，会记作「已结束」并开启新一轮。')) return;
+    if (!confirm('重置本轮循环？\n\n当前进度 ' + done + ' / ' + len + '，会记作「已结束」，然后从第一个大项重新开始。')) return;
     closeCycle(false);
-    ui.sel = nextPartId(null) || ui.sel;
+    ui.sel = DB.parts[0] ? DB.parts[0].id : null;
+    DB.settings.selDate = today(); DB.settings.selPart = ui.sel;   // 重置也算一次「今天手动指定过」
     renderHome();
-    toast('已结束本轮，开启新一轮');
+    const p0 = partOf(ui.sel);
+    toast('已重置本轮，从「' + (p0 ? p0.name : '第一个大项') + '」重新开始');
   });
 
   on('tGo', 'click', function(){

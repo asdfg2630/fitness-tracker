@@ -1,4 +1,4 @@
-const CACHE = 'fitness-v2';
+const CACHE = 'fitness-db8d5a28';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 const NET_TIMEOUT = 3000;
 self.addEventListener('install', (e) => {

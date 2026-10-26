@@ -21,7 +21,7 @@ body{
   margin:0;background:var(--bg);color:var(--text);touch-action:manipulation;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
   font-size:15px;line-height:1.5;letter-spacing:.01em;
-  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+  padding-bottom:calc(92px + env(safe-area-inset-bottom));
 }
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input,textarea,select{font:inherit;color:inherit}
@@ -384,11 +384,78 @@ body.theme-frost .ex{padding-left:20px}
 body.theme-frost .focus-title{font-size:38px}
 body.theme-frost .cycle-row{margin-top:2px}
 
+/* ---------- 底部标签栏 ---------- */
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  display:flex;align-items:stretch;justify-content:space-around;gap:2px;
+  padding:6px max(8px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom));
+  background:rgba(250,250,252,.88);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-top:1px solid rgba(0,0,0,.07);
+  box-shadow:0 -1px 12px rgba(0,0,0,.03);
+}
+.tabbar .tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  min-height:52px;border-radius:14px;color:var(--text-3);
+  transition:color .18s, transform .12s;
+}
+.tabbar .tab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tabbar .tab span{font-size:10.5px;font-weight:500;letter-spacing:.02em;line-height:1.2}
+.tabbar .tab.on{color:var(--accent)}
+.tabbar .tab.on span{font-weight:600}
+.tabbar .tab:active{transform:scale(.94)}
+
+/* ---------- 食谱页 ---------- */
+.seg{display:flex;gap:4px;background:#ececf0;border-radius:15px;padding:4px;margin-bottom:14px}
+.seg button{
+  flex:1;min-height:50px;border-radius:12px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+  font-size:15px;font-weight:600;color:var(--text-2);
+  transition:background .2s,color .2s,box-shadow .2s;
+}
+.seg button small{display:block;font-size:10.5px;font-weight:400;color:var(--text-3);letter-spacing:.02em}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.seg button.on small{color:var(--text-2)}
+
+.day-total{overflow:hidden}
+.dt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+.dt{background:var(--surface);padding:13px 4px;text-align:center}
+.dt .v{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.dt .v small{font-size:11px;font-weight:500;color:var(--text-3);margin-left:1px}
+.dt .l{font-size:11px;color:var(--text-3);margin-top:2px}
+.dt-foot{padding:11px 18px 13px;font-size:12.5px;color:var(--text-2);line-height:1.55;border-top:1px solid var(--line)}
+.dt-foot b{color:var(--text);font-weight:600}
+
+.meal{overflow:hidden}
+.meal-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:13px 18px 9px}
+.meal-nm{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.meal-kcal{font-size:13px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.food{display:flex;align-items:baseline;gap:10px;padding:9px 18px;border-top:1px solid var(--line);min-height:44px}
+.food .fd{flex:1;min-width:0;font-size:14.5px;line-height:1.4}
+.food .fd i{font-style:normal;font-weight:600;font-variant-numeric:tabular-nums}
+.food .fd em{font-style:normal;display:block;font-size:11.5px;color:var(--text-3);margin-top:1px}
+.food .fk{font-size:12.5px;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.meal-macro{padding:9px 18px 13px;font-size:12px;color:var(--text-3);border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.meal-macro b{color:var(--text-2);font-weight:600}
+
+.notes{margin:0;padding:2px 20px 18px;list-style:none;counter-reset:n}
+.notes li{
+  position:relative;counter-increment:n;padding:7px 0 7px 24px;
+  font-size:13.5px;line-height:1.55;color:var(--text-2);border-top:1px solid var(--line);
+}
+.notes li:first-child{border-top:0}
+.notes li::before{
+  content:counter(n);position:absolute;left:0;top:7px;
+  width:17px;height:17px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  font-size:10.5px;font-weight:700;display:grid;place-items:center;font-variant-numeric:tabular-nums;
+}
+.notes li b{color:var(--text);font-weight:600}
+
 /* ---------- 打印 ---------- */
 @media print{
   :root{ --bg:#fff; --shadow:none }
   body{background:#fff;padding-bottom:0}
-  .icon-btn,#timerCard,#btnFinish,#finishHint,.log-nav,#btnEndCycle,.legend,.drawer{display:none !important}
+  .icon-btn,#timerCard,#btnFinish,#finishHint,.log-nav,#btnEndCycle,.legend,.drawer,.tabbar{display:none !important}
   .card{box-shadow:none;border:1px solid #e6e6ea;break-inside:avoid;margin-bottom:12px}
   .topbar{position:static;border-bottom:1px solid #e6e6ea}
   .cal-cell.hit{background:#eef7f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -598,6 +665,51 @@ body.theme-frost .cycle-row{margin-top:2px}
     </div>
   </main>
 </div>
+
+<!-- ============ 减脂食谱页 ============ -->
+<div id="dietView" class="hidden">
+  <header class="topbar">
+    <div class="brand">减脂食谱<span class="brand-sub" id="dietSub"></span></div>
+    <button class="icon-btn" id="btnDietAbout" title="这页的数怎么来的" aria-label="说明">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16.5v-4.6M12 8.2h.01"/></svg>
+    </button>
+  </header>
+  <main>
+    <div class="seg" id="dietSeg">
+      <button type="button" data-day="train" class="on">训练日<small>一周 4 天 · 高碳低脂</small></button>
+      <button type="button" data-day="rest">非训练日<small>一周 3 天 · 低碳高脂</small></button>
+    </div>
+    <section class="card day-total">
+      <div class="dt-grid" id="dietTotals"></div>
+      <div class="dt-foot" id="dietFoot"></div>
+    </section>
+    <div id="dietMeals"></div>
+    <section class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title">执行要点</div><div class="card-note" id="dietNoteCount"></div></div>
+      <ol class="notes" id="dietNotesList"></ol>
+    </section>
+    <section class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title">有氧</div><div class="card-note">配菜，不是主菜</div></div>
+      <ol class="notes" id="dietCardioList"></ol>
+    </section>
+  </main>
+</div>
+
+<!-- ============ 底部标签栏 ============ -->
+<nav class="tabbar" id="tabbar" aria-label="页面切换">
+  <button class="tab on" data-view="home" aria-current="page">
+    <svg viewBox="0 0 24 24"><path d="M6.5 7v10M17.5 7v10M3 9.6v4.8M21 9.6v4.8M6.5 12h11"/></svg>
+    <span>训练</span>
+  </button>
+  <button class="tab" data-view="diet">
+    <svg viewBox="0 0 24 24"><path d="M3.5 11h17a8.5 8.5 0 0 1-17 0z"/><path d="M8.6 11c0-3.9 3.4-4.6 3.4-7"/><path d="M4 20h16"/></svg>
+    <span>食谱</span>
+  </button>
+  <button class="tab" data-view="settings">
+    <svg viewBox="0 0 24 24"><circle cx="8" cy="7" r="2.2"/><circle cx="16" cy="17" r="2.2"/><path d="M10.2 7H20M4 7h1.8M18.2 17H21M4 17h9.8"/></svg>
+    <span>设置</span>
+  </button>
+</nav>
 
 <!-- ============ 右侧滑出面板 ============ -->
 <aside class="drawer" id="drawer" aria-hidden="true">
@@ -1350,20 +1462,40 @@ function bindHome(){
   on('btnSettings', 'click', showSettings);
 }
 
-/* ---------------- 设置页 ---------------- */
-function showSettings(){
-  $('homeView').classList.add('hidden');
-  $('settingsView').classList.remove('hidden');
-  window.scrollTo(0, 0);
-  renderSettings();
+/* ---------------- 页面切换（底部标签栏） ---------------- */
+/* 三页各自独立：训练首页 / 减脂食谱 / 设置。食谱是单独一页，不往首页下面续。 */
+const VIEWS = { home:'homeView', diet:'dietView', settings:'settingsView' };
+let curView = 'home';
+
+function syncTabs(name){
+  const tabs = document.querySelectorAll('#tabbar .tab');
+  Array.prototype.forEach.call(tabs, function(b){
+    const onTime = b.dataset.view === name;
+    b.classList.toggle('on', onTime);
+    if (onTime) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
 }
-function showHome(){
-  $('settingsView').classList.add('hidden');
-  $('homeView').classList.remove('hidden');
+
+function showView(name){
+  if (!VIEWS[name]) name = 'home';
+  curView = name;
+  Object.keys(VIEWS).forEach(function(k){
+    const el = $(VIEWS[k]);
+    if (el) el.classList.toggle('hidden', k !== name);
+  });
+  syncTabs(name);
   window.scrollTo(0, 0);
-  saveNow();
-  renderHome();
+  if (name === 'home'){ saveNow(); renderHome(); }
+  else if (name === 'settings'){ renderSettings(); }
+  else if (name === 'diet'){ renderDiet(); }
+  if (('#' + name) !== location.hash){
+    try { history.replaceState(null, '', '#' + name); }
+    catch(e){ location.hash = name; }
+  }
 }
+function showSettings(){ showView('settings'); }
+function showHome(){ showView('home'); }
 
 function renderSettings(){
   $('editToday').textContent = today() + ' 周' + DOW[new Date().getDay()];
@@ -1775,6 +1907,190 @@ function bindDragReorder(){
   });
 }
 
+/* ---------------- 减脂食谱（2026-10-19 定稿，克数照抄） ----------------
+   食物库口径与定稿文档一致（每 100 g：热量 kcal / 碳水 / 蛋白 / 脂肪）。
+   页面上的热量、合计、缺口都是现算的，以后只改克数、不用手改数字。 */
+const DF = {
+  rye:    [340, 62,  10,   2.6],
+  yogurt: [65,  4.7, 3,    3.8],
+  egg:    [144, 0.8, 12.6, 9.6],
+  berry:  [56,  14,  0.8,  0.4],
+  walnut: [654, 14,  15,   65 ],
+  rice:   [346, 78,  7,    0.8],
+  breast: [118, 0,   23,   2.5],
+  leg:    [152, 0,   20,   8  ],
+  shrimp: [90,  0.5, 19,   1  ],
+  oil:    [900, 0,   0,    100],
+  whey:   [400, 10,  80,   5  ],
+  fishoil:[900, 0,   0,    100],
+  veg:    [30,  4,   2.5,  0.4]
+};
+/* 每两周调一次时只改这三行：体重、日常消耗、日期。
+   日期变了，手机上才看得出拿到的是新版 —— 别只改克数不改日期。 */
+const DIET_META = { kg: 102.5, tdee: 3000, ver: '2026-10-19' };
+/* 条目格式：[食物键, 克数, 名称, 用量, 备注] */
+function dietMacro(items){
+  return items.reduce(function(a, it){
+    const f = DF[it[0]];
+    return [a[0] + f[0]*it[1]/100, a[1] + f[1]*it[1]/100, a[2] + f[2]*it[1]/100, a[3] + f[3]*it[1]/100];
+  }, [0, 0, 0, 0]);
+}
+
+const DIET_BREAKFAST = [
+  ['rye',     45,  '黑麦片',                  '45 g', '干重，煮完别滤水'],
+  ['yogurt',  100, '0 蔗糖酸奶',              '100 g','普通款就行'],
+  ['egg',     100, '鸡蛋',                    '2 个', '约 100 g 可食'],
+  ['berry',   50,  '蓝莓',                    '50 g', ''],
+  ['walnut',  10,  '核桃',                    '2 颗', '约 10 g 仁'],
+  ['fishoil', 3,   '鱼油 2 粒 + 松针油 1 粒', '',     '已计入脂肪']
+];
+const DIET_VEG = [['veg', 600, '蔬菜', '600 g', '自选：西兰花 / 彩椒 / 番茄']];
+
+const DIET = {
+  train: {
+    sub: DIET_META.kg + ' kg · 日常消耗 ' + DIET_META.tdee + ' kcal',
+    meals: [
+      { name:'早餐', items: DIET_BREAKFAST },
+      { name:'午餐（练前）', items: [
+        ['rice',   150, '大米',       '150 g 生重', '≈ 345 g 熟饭'],
+        ['breast', 200, '鸡胸肉',     '200 g',      ''],
+        ['shrimp', 30,  '虾仁',       '3 只',       '约 30 g'],
+        ['whey',   12,  '乳清蛋白粉', '12 g',       '约 0.4 勺，补虾减量'],
+        ['oil',    6,   '烹调油',     '6 g',        '']
+      ]},
+      { name:'晚餐（练后）', items: [
+        ['rice',   150, '大米',       '150 g 生重', '≈ 345 g 熟饭'],
+        ['leg',    200, '去皮手枪腿', '1 只',       '≈ 200 g 可食'],
+        ['shrimp', 25,  '虾仁',       '2 只',       '约 25 g'],
+        ['oil',    5,   '烹调油',     '5 g',        '']
+      ]},
+      { name:'蔬菜', items: DIET_VEG }
+    ]
+  },
+  rest: {
+    sub: DIET_META.kg + ' kg · 日常消耗 ' + DIET_META.tdee + ' kcal',
+    meals: [
+      { name:'早餐', items: DIET_BREAKFAST },
+      { name:'午餐', items: [
+        ['rice',   90,  '大米',       '90 g 生重', '≈ 205 g 熟饭'],
+        ['breast', 220, '鸡胸肉',     '220 g',     ''],
+        ['shrimp', 30,  '虾仁',       '3 只',      '约 30 g'],
+        ['whey',   12,  '乳清蛋白粉', '12 g',      '约 0.4 勺，补虾减量'],
+        ['oil',    12,  '烹调油',     '12 g',      '']
+      ]},
+      { name:'晚餐', items: [
+        ['rice',   87,  '大米',       '87 g 生重', '≈ 200 g 熟饭'],
+        ['leg',    200, '去皮手枪腿', '1 只',      '≈ 200 g 可食'],
+        ['shrimp', 25,  '虾仁',       '2 只',      '约 25 g'],
+        ['oil',    12,  '烹调油',     '12 g',      ''],
+        ['whey',   15,  '乳清蛋白粉', '15 g',      '约半勺']
+      ]},
+      { name:'蔬菜', items: DIET_VEG }
+    ]
+  }
+};
+
+const DIET_NOTES = [
+  '<b>米一律是生重。</b>150 g 生米 ≈ 345 g 熟饭，90 g ≈ 205 g，87 g ≈ 200 g。别拿熟饭重量套生米。',
+  '<b>两天的差别是刻意的。</b>训练日碳水高、脂肪低；非训练日碳水低、脂肪高（油 12 + 12 g）。不动的那天吃那么多米没用。',
+  '<b>鸡腿一定去皮。</b>200 g 可食 = 蛋白 40 g，脂肪约 16 g。',
+  '<b>核桃只留 2 颗。</b>给喷嘴油瓶留容错：一颗核桃 3.3 g 脂肪，正好抵掉多喷的几克。',
+  '<b>喷雾油瓶校准一次。</b>空锅连瓶称 → 喷 20 下再称 → 差值 ÷20 = 每下克数。之后「12 g」就是「喷 N 下」。训练日只有 11 g，别超。',
+  '<b>鱼油 2 粒 + 松针油 1 粒已计入早餐</b>（3 g 脂肪 / 27 kcal）。看鱼油别只看「1000 mg」，要看 EPA+DHA 实际毫克数。',
+  '<b>酸奶用普通款就行。</b>别为了 4 g 蛋白差去加鸡胸。',
+  '<b>黑麦片煮完别滤水。</b>β-葡聚糖就在水里。',
+  '<b>虾一天共 5 只（约 55 g）。</b>少掉的蛋白用 12 g 乳清补；虾嘌呤 150–200 mg/100 g，乳清低嘌呤。',
+  '<b>判据是 4 周后称重：</b>掉 ≥2 kg 什么都别动；不到 1 kg 先把休息日的油减 5 g；超过 3.5 kg 加 200 kcal。'
+];
+
+const DIET_CARDIO = [
+  '<b>一周 3–4 次、每次 30–45 分钟</b>，累计 150–250 分钟/周。',
+  '<b>形式：</b>快走（坡度 5–8%）、椭圆机、单车、游泳。102.5 kg 别跑步，膝踝不划算。',
+  '<b>强度：</b>心率 115–135（能说话、唱不了歌）。和力量同一天就放在力量之后，或放非练腿日。',
+  '<b>别把有氧消耗算成「今天能多吃」：</b>约三成会被身体补偿掉。'
+];
+
+function dietTotals(d){
+  return d.meals.reduce(function(a, m){
+    const t = dietMacro(m.items);
+    return [a[0]+t[0], a[1]+t[1], a[2]+t[2], a[3]+t[3]];
+  }, [0, 0, 0, 0]);
+}
+
+function renderDiet(){
+  const key = ui.dietDay === 'rest' ? 'rest' : 'train';
+  const d = DIET[key];
+  ui.dietDay = key;
+
+  const seg = document.querySelectorAll('#dietSeg button');
+  Array.prototype.forEach.call(seg, function(b){
+    b.classList.toggle('on', b.dataset.day === key);
+  });
+  $('dietSub').textContent = d.sub + ' · ' + DIET_META.ver + ' 定稿';
+
+  const total = dietTotals(d);
+  const def = DIET_META.tdee - total[0];
+  const cells = [
+    ['热量', Math.round(total[0]), 'kcal'],
+    ['碳水', Math.round(total[1]), 'g'],
+    ['蛋白', Math.round(total[2]), 'g'],
+    ['脂肪', Math.round(total[3]), 'g']
+  ];
+  $('dietTotals').innerHTML = cells.map(function(c){
+    return '<div class="dt"><div class="v">' + c[1] + '<small>' + c[2] + '</small></div>' +
+           '<div class="l">' + c[0] + '</div></div>';
+  }).join('');
+  $('dietFoot').innerHTML = '缺口 <b>' + Math.round(def) + ' kcal</b> · 约每周 −' +
+    (def * 7 / 7700).toFixed(2) + ' kg · 4 周约 −' + (def * 28 / 7700).toFixed(1) + ' kg' +
+    '<span style="color:var(--text-3)">　按日常消耗 ' + DIET_META.tdee + ' kcal 算</span>';
+
+  $('dietMeals').innerHTML = d.meals.map(function(m){
+    const t = dietMacro(m.items);
+    const rows = m.items.map(function(it){
+      const k = dietMacro([it])[0];
+      return '<div class="food"><span class="fd">' + it[2] +
+        (it[3] ? ' <i>' + it[3] + '</i>' : '') +
+        (it[4] ? '<em>' + it[4] + '</em>' : '') +
+        '</span><span class="fk">' + Math.round(k) + '</span></div>';
+    }).join('');
+    return '<section class="card meal" style="margin-top:16px">' +
+      '<div class="meal-head"><span class="meal-nm">' + m.name + '</span>' +
+      '<span class="meal-kcal">' + Math.round(t[0]) + ' kcal</span></div>' + rows +
+      '<div class="meal-macro">碳水 <b>' + Math.round(t[1]) + '</b> · 蛋白 <b>' + Math.round(t[2]) +
+      '</b> · 脂肪 <b>' + Math.round(t[3]) + '</b></div></section>';
+  }).join('');
+
+  $('dietNotesList').innerHTML = DIET_NOTES.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+  $('dietNoteCount').textContent = DIET_NOTES.length + ' 条';
+  $('dietCardioList').innerHTML = DIET_CARDIO.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+}
+
+function bindDiet(){
+  on('dietSeg', 'click', function(e){
+    const b = e.target.closest('[data-day]');
+    if (!b) return;
+    const key = b.dataset.day === 'rest' ? 'rest' : 'train';
+    if (key === ui.dietDay) return;
+    ui.dietDay = key;
+    try { localStorage.setItem('fitnessDietDay', key); } catch(err){}
+    renderDiet();
+  });
+  on('btnDietAbout', 'click', function(){
+    toast('克数照抄 2026-10-19 定稿那份（减脂食谱-训练日与非训练日.docx），热量按同一份食物库现算');
+  });
+}
+
+function bindTabbar(){
+  const bar = $('tabbar');
+  if (!bar) return;
+  bar.addEventListener('click', function(e){
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    if (b.dataset.view === curView){ window.scrollTo(0, 0); return; }
+    showView(b.dataset.view);
+  });
+}
+
 /* ---------------- 启动 ---------------- */
 function boot(){
   DB = load();
@@ -1788,8 +2104,23 @@ function boot(){
   ui.day = today();            // 记住当前是哪一天，用来发现「隔夜没重载」
   bindHome();
   bindSettings();
+  bindDiet();
+  bindTabbar();
   bindGlobalHaptic();
   renderHome();
+  // 记住上次看的是训练日还是非训练日（食谱页那个分段开关）
+  try {
+    const v = localStorage.getItem('fitnessDietDay');
+    if (v === 'rest' || v === 'train') ui.dietDay = v;
+  } catch(e){}
+  // 刷新时停在哪一页：靠 hash 记住，避免每次回首页
+  const startView = (location.hash || '').replace('#', '');
+  if (VIEWS[startView] && startView !== 'home') showView(startView);
+  else syncTabs('home');
+  window.addEventListener('hashchange', function(){
+    const v = (location.hash || '').replace('#', '') || 'home';
+    if (v !== curView) showView(v);
+  });
   window.addEventListener('beforeunload', saveNow);
   document.addEventListener('visibilitychange', function(){
     if (document.hidden){ saveNow(); return; }

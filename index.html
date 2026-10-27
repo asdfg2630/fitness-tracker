@@ -695,7 +695,7 @@ table.swap td.nt{font-size:11.5px;color:var(--text-3)}
     <div id="dietMeals"></div>
     <section class="card" style="margin-top:16px">
       <div class="card-head"><div class="card-title">替换表</div><div class="card-note">只换两顿肉</div></div>
-      <div class="swap-hint">米、油、蔬菜、蛋白粉照当天那张表走。目标：两顿肉合计 <b>78 g 蛋白 / 20 g 脂肪</b>，热量自己会落到 2400 上下。午饭晚饭顺序倒过来一样。</div>
+      <div class="swap-hint">米、油、蔬菜、蛋白粉照当天那张表走。<b>蛋白</b>：两顿肉 78–86 g；<b>脂肪</b>：有一顿是腿就够，两顿都没腿要补油。午饭晚饭顺序倒过来一样。</div>
       <div class="swap-wrap"><table class="swap" id="dietSwap"></table></div>
     </section>
     <section class="card" style="margin-top:16px">
@@ -2027,12 +2027,12 @@ const DIET_UNITS = [
 ];
 
 const DIET_SWAP = [
-  { l:'鸡胸 1 块',        li:[['breast',165]], d:'手枪腿 1 只', di:[['leg',200]],    note:'最常见' },
-  { l:'鸡胸 1 块',        li:[['breast',165]], d:'鸡排 2 块',   di:[['cutlet',200]], note:'脂肪少 → 当天油多加 12 g' },
-  { l:'鸡排 2 块',        li:[['cutlet',200]], d:'手枪腿 1 只', di:[['leg',200]],    note:'' },
-  { l:'鸡胸 1 块',        li:[['breast',165]], d:'鸡胸 1 块',   di:[['breast',165]], note:'两顿都鸡胸，脂肪最低 → 油多加 12 g' },
-  { l:'牛腱 150 g（熟）', li:[['beef',150]],   d:'手枪腿 1 只', di:[['leg',200]],    note:'' },
-  { l:'牛腱 150 g（熟）', li:[['beef',150]],   d:'鸡胸 1 块',   di:[['breast',165]], note:'' }
+  { l:'鸡胸 1 块',        li:[['breast',165]], d:'手枪腿 1 只', di:[['leg',200]],    oil:'照常',  note:'最常见' },
+  { l:'鸡胸 1 块',        li:[['breast',165]], d:'鸡排 2 块',   di:[['cutlet',200]], oil:'+12 g', note:'' },
+  { l:'鸡排 2 块',        li:[['cutlet',200]], d:'手枪腿 1 只', di:[['leg',200]],    oil:'照常',  note:'' },
+  { l:'鸡胸 1 块',        li:[['breast',165]], d:'鸡胸 1 块',   di:[['breast',165]], oil:'+12 g', note:'脂肪最低' },
+  { l:'牛腱 150 g（熟）', li:[['beef',150]],   d:'手枪腿 1 只', di:[['leg',200]],    oil:'照常',  note:'' },
+  { l:'牛腱 150 g（熟）', li:[['beef',150]],   d:'鸡胸 1 块',   di:[['breast',165]], oil:'+12 g', note:'' }
 ];
 
 const DIET_NOTES = [
@@ -2044,7 +2044,7 @@ const DIET_NOTES = [
   '<b>蛋白粉按「勺」。</b>一勺 30 g 粉 = 21 g 蛋白 + 5 g 碳水 + 2 g 脂肪 ≈ 122 kcal。训练日 1 勺，非训练日 1.5 勺（午 1 + 晚半）。乳清嘌呤极低，用它换肉对尿酸是净赚。',
   '<b>替换表只换肉。</b>每顿 1 个单位，两顿加起来 78–86 g 蛋白，全天落 1.55–1.7 g/kg。午饭晚饭顺序倒过来一样。',
   '<b>别两顿都吃鸡排。</b>一块才 23 g 蛋白，两顿鸡排只有 46 g，全天会掉到 1.4 g/kg —— 至少一顿是鸡胸或腿。',
-  '<b>两顿都没腿的那天（比如鸡胸配鸡排），油多加 12 g。</b>腿是脂肪主力（一只 16 g），鸡胸配鸡排只有 9 g；不补就是少 108 kcal，缺口更大而已。',
+  '<b>脂肪跟着腿走。</b>两顿里有一顿是腿，脂肪正好 19–22 g；两顿都没腿只有 6–9 g，比目标少 12 g（约 108 kcal）——要么油多放 12 g，要么就接受那天缺口更大。别连着几天都选没腿的组合。',
   '<b>脂肪的两处容错：</b>核桃只留 2 颗（一颗 3.3 g）；喷雾油瓶校准一次 —— 空锅连瓶称 → 喷 20 下再称 → 差值 ÷20 = 每下克数。',
   '<b>鱼油 2 粒 + 松针油 1 粒已计入早餐</b>（3 g 脂肪 / 27 kcal）。黑麦片煮完别滤水，β-葡聚糖就在水里。',
   '<b>虾一天共 5 只（约 55 g）。</b>虾嘌呤 150–200 mg/100 g，少掉的蛋白用粉补；酸奶用普通款就行，别为 4 g 蛋白差去加鸡胸。',
@@ -2112,12 +2112,12 @@ function renderDiet(){
   $('dietNoteCount').textContent = DIET_NOTES.length + ' 条';
   $('dietCardioList').innerHTML = DIET_CARDIO.map(function(s){ return '<li>' + s + '</li>'; }).join('');
 
-  $('dietSwap').innerHTML = '<thead><tr><th>午餐肉</th><th>晚餐肉</th><th>蛋白</th><th>脂肪</th><th>备注</th></tr></thead><tbody>' +
+  $('dietSwap').innerHTML = '<thead><tr><th>午餐肉</th><th>晚餐肉</th><th>蛋白</th><th>脂肪</th><th>油</th><th>备注</th></tr></thead><tbody>' +
     DIET_SWAP.map(function(s){
       const m = dietMacro(s.li.concat(s.di));
       return '<tr><td>' + s.l + '</td><td>' + s.d +
         '</td><td class="n">' + Math.round(m[2]) + ' g</td><td class="n">' + Math.round(m[3]) +
-        ' g</td><td class="nt">' + s.note + '</td></tr>';
+        ' g</td><td class="n">' + s.oil + '</td><td class="nt">' + s.note + '</td></tr>';
     }).join('') + '</tbody>';
 
   $('dietUnits').innerHTML = '<thead><tr><th>一份</th><th>蛋白</th><th>脂肪</th><th>热量</th></tr></thead><tbody>' +
